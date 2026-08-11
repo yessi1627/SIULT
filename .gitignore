@@ -1,0 +1,23 @@
+# PHP / Composer
+/vendor/
+composer.lock
+
+# Node / Angular (cuando lo agregues)
+node_modules/
+dist/
+.angular/
+
+# Variables de entorno y credenciales
+.env
+.env.local
+config/database.php
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de VS Code
+.vscode/
+
+# Logs
+*.log
