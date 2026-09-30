@@ -1,4 +1,19 @@
 <?php
+// Habilito CORS para el frontend Angular (localhost:4200) que consume este endpoint
+$origenesPermitidos = ['http://localhost:4200'];
+$origen = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (in_array($origen, $origenesPermitidos, true)) {
+    header('Access-Control-Allow-Origin: ' . $origen);
+    header('Access-Control-Allow-Credentials: true');
+}
+header('Access-Control-Allow-Methods: GET, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit();
+}
+
 include('../../config.php');
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -16,11 +31,12 @@ function obtenerTareasOrdenadas($orden)
         'fecha_entrega' => 't.fecha_entrega',
     ];
     $ordenSql = $ordenesPermitidos[$orden] ?? $ordenesPermitidos['title'];
-    $sql = "SELECT t.*, m.nombre_materia AS materia, a.ruta_archivo
+    $sql = "SELECT t.*, m.nombre_materia AS materia, a.ruta_archivo, c.nota, c.observacion AS observacion_calificacion
         FROM tareas t
         LEFT JOIN materias m ON t.id_materia = m.id_materia
-        LEFT JOIN archivos a ON t.id_tarea = a.id_tarea";
-    $parametros = [];
+        LEFT JOIN archivos a ON t.id_tarea = a.id_tarea
+        LEFT JOIN calificaciones c ON c.id_tarea = t.id_tarea AND c.id_usuario = :id_usuario_calificacion";
+    $parametros = [':id_usuario_calificacion' => $_SESSION['id_usuario'] ?? 0];
     if (($_SESSION['role'] ?? '') === 'ESTUDIANTE') {
         $sql .= " INNER JOIN matriculas mat ON mat.id_materia = t.id_materia
             WHERE mat.id_usuario = :id_usuario";
@@ -121,6 +137,8 @@ $tareasMap = array_map(function ($tarea) {
         'ruta_archivo' => $tarea['ruta_archivo'],
         'fecha_entrega' => $tarea['fecha_entrega'],
         'hora_entrega' => $tarea['hora_entrega'],
+        'nota' => $tarea['nota'],
+        'observacion_calificacion' => $tarea['observacion_calificacion'],
     ];
 }, $tareas);
 

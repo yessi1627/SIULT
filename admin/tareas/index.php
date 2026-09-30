@@ -40,6 +40,7 @@ include('../../config/controllers/tareas/index.php');
                                         <th>Estado</th>
                                         <th>Materia</th>
                                         <th>Archivo</th>
+                                        <th id="th-calificacion">Calificación</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
@@ -63,6 +64,12 @@ include('../../layout/mostrarMensajes.php');
 <script>
     $(function () {
         const role = "<?= $_SESSION['role'] ?>";
+        const mostrarCalificacion = role === 'ESTUDIANTE';
+
+        if (!mostrarCalificacion) {
+            const thCalificacion = document.getElementById('th-calificacion');
+            if (thCalificacion) thCalificacion.remove();
+        }
 
         function loadTable(order = 'title') {
             fetch('../../config/controllers/tareas/list.php?order=' + order)
@@ -81,6 +88,12 @@ include('../../layout/mostrarMensajes.php');
                         const fileHTML = element.ruta_archivo ?
                             `<a href="../../config/uploads/${element.ruta_archivo}" target="_blank">Ver archivo</a>` :
                             'No hay archivo';
+
+                        const calificacionHTML = element.nota !== null && element.nota !== undefined ?
+                            `Nota: ${element.nota}${element.observacion_calificacion ? ' - ' + element.observacion_calificacion : ''}` :
+                            'Sin calificar';
+                        const calificacionCeldaHTML = mostrarCalificacion ?
+                            `<td><center>${calificacionHTML}</center></td>` : '';
 
                         let adminEditHTML = '';
                         let adminRemoveHTML = '';
@@ -109,6 +122,7 @@ include('../../layout/mostrarMensajes.php');
                             <td><center>${element.estado}</center></td>
                             <td><center>${element.materia}</center></td>
                             <td><center>${fileHTML}</center></td>
+                            ${calificacionCeldaHTML}
                             <td><center>${actionsHTML}</center></td>
                         `;
                         tbody.appendChild(row);
