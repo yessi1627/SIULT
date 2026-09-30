@@ -46,3 +46,9 @@ if (strpos($_SERVER['REQUEST_URI'], '/matriculas/') !== false && $role !== 'ADMI
     header('Location: ../home.php');
     exit();
 }
+
+// El modulo de calificaciones es exclusivo del administrador y el profesor
+if (strpos($_SERVER['REQUEST_URI'], '/calificaciones/') !== false && !in_array($role, ['ADMINISTRADOR', 'PROFESOR'])) {
+    header('Location: ../home.php');
+    exit();
+}
