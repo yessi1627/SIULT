@@ -13,6 +13,7 @@ Los scripts se ejecutan en este orden. Las migraciones se pueden volver a ejecut
 | 2 | `migracion_matriculas.sql` | Asegura la llave primaria de `usuarios`, el `AUTO_INCREMENT` de `materias` y la tabla `matriculas`. |
 | 3 | `migracion_calificaciones.sql` | Crea la tabla `calificaciones` (nota entre 0 y 5, una por tarea y estudiante). |
 | 4 | `migracion_entregas.sql` | Unifica los estados de las tareas (`Pendiente`, `Completada`, `Vencida`) y crea la tabla `entregas` (una entrega por tarea y estudiante). |
+| 5 | `migracion_concurrencia.sql` | Agrega `version` a `calificaciones` (bloqueo optimista) y crea `cola_respaldo` (respaldo de la cola de Redis). |
 
 ## Instalación desde cero (phpMyAdmin)
 
@@ -30,7 +31,7 @@ C:\xampp\mysql\bin\mysql -u root sistemaescolar < database/migracion_calificacio
 C:\xampp\mysql\bin\mysql -u root sistemaescolar < database/migracion_entregas.sql
 ```
 
-Si la base de datos ya existe con datos, solo se ejecutan las migraciones que falten (pasos 2 a 4).
+Si la base de datos ya existe con datos, solo se ejecutan las migraciones que falten (pasos 2 a 5).
 
 ## Usuarios de prueba
 
