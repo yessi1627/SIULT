@@ -1,19 +1,6 @@
 <?php
-if (getenv('MYSQLHOST')) {
-    // Si estoy en Railway uso las variables de entorno
-    define('SERVIDOR', getenv('MYSQLHOST'));
-    define('USUARIO', getenv('MYSQLUSER'));
-    define('PASSWORD', getenv('MYSQLPASSWORD'));
-    define('BD', getenv('MYSQLDATABASE') ?: 'sistemaescolar');
-    define('PUERTO', getenv('MYSQLPORT'));
-} else {
-    // Si estoy en local uso la configuración de XAMPP
-    define('SERVIDOR', 'localhost');
-    define('USUARIO', 'root');
-    define('PASSWORD', '');
-    define('BD', 'sistemaescolar');
-    define('PUERTO', '3306');
-}
+// Cargo los datos de conexion y la zona horaria (compartidos con la API)
+require_once __DIR__ . '/entorno.php';
 
 // Defino el nombre de mi aplicacion
 define('APP_NAME', 'SISTEMA DE GESTION ESCOLAR');
@@ -37,8 +24,6 @@ try {
     }
 }
 
-// Configuro la zona horaria 
-date_default_timezone_set('America/Bogota');
 $fechaHora = date('Y-m-d H:i:s');
 $fechaActual = date('Y-m-d');
 $diaActual = date('d');
