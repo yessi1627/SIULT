@@ -1,0 +1,17 @@
+{
+    "name": "yessi1627/siult",
+    "description": "Sistema de gestion escolar: vistas PHP y API REST con Eloquent",
+    "type": "project",
+    "require": {
+        "php": ">=8.2",
+        "illuminate/database": "^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Api\\": "api/src/"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

@@ -6,3 +6,6 @@ __pycache__/
 # Conservo la carpeta con .gitkeep para que exista al clonar el proyecto.
 config/uploads/*
 !config/uploads/.gitkeep
+
+# Dependencias de Composer (se instalan con: composer install)
+/vendor/
