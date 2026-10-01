@@ -3,6 +3,7 @@ include('../../config.php');
 require_once __DIR__ . '/../../seguridad.php';
 require_once __DIR__ . '/../../estados_tarea.php';
 require_once __DIR__ . '/../../archivos.php';
+require_once __DIR__ . '/../../bloqueos.php';
 exigirRol(['ADMINISTRADOR', 'PROFESOR', 'ESTUDIANTE']);
 
 function rechazarArchivo($mensaje)
@@ -62,23 +63,45 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     if ($es_estudiante) {
-        // Busco si el estudiante ya tenia una entrega para borrar el archivo anterior al reemplazarla
-        $sentencia = $pdo->prepare("SELECT ruta_archivo FROM entregas WHERE id_tarea = :id_tarea AND id_usuario = :id_usuario");
-        $sentencia->execute([':id_tarea' => $id_tarea, ':id_usuario' => $_SESSION['id_usuario']]);
-        $ruta_anterior = $sentencia->fetchColumn();
+        // Exclusion mutua con GET_LOCK: una sola subida a la vez por estudiante y tarea.
+        // Dentro, una transaccion: si algo falla se deshace todo y borro el archivo nuevo.
+        try {
+            $ruta_anterior = conBloqueo($pdo, nombreBloqueoEntrega($id_tarea, (int) $_SESSION['id_usuario']), 5, function () use ($pdo, $id_tarea, $nombre_guardado, $nombre_original, $fechaHora) {
+                $pdo->beginTransaction();
+                try {
+                    // Busco si el estudiante ya tenia una entrega para borrar el archivo anterior al reemplazarla
+                    $sentencia = $pdo->prepare("SELECT ruta_archivo FROM entregas WHERE id_tarea = :id_tarea AND id_usuario = :id_usuario FOR UPDATE");
+                    $sentencia->execute([':id_tarea' => $id_tarea, ':id_usuario' => $_SESSION['id_usuario']]);
+                    $anterior = $sentencia->fetchColumn();
 
-        // Registro SOLO la entrega de este estudiante; si vuelve a subir, reemplazo su entrega
-        $sentencia = $pdo->prepare("INSERT INTO entregas (id_tarea, id_usuario, ruta_archivo, nombre_original, fecha_entrega)
-            VALUES (:id_tarea, :id_usuario, :ruta_archivo, :nombre_original, :fecha_entrega)
-            ON DUPLICATE KEY UPDATE ruta_archivo = VALUES(ruta_archivo), nombre_original = VALUES(nombre_original),
-                fecha_entrega = VALUES(fecha_entrega)");
-        $sentencia->execute([
-            ':id_tarea' => $id_tarea,
-            ':id_usuario' => $_SESSION['id_usuario'],
-            ':ruta_archivo' => $nombre_guardado,
-            ':nombre_original' => mb_substr($nombre_original, 0, 255),
-            ':fecha_entrega' => $fechaHora,
-        ]);
+                    // Registro SOLO la entrega de este estudiante; si vuelve a subir, reemplazo su entrega
+                    $sentencia = $pdo->prepare("INSERT INTO entregas (id_tarea, id_usuario, ruta_archivo, nombre_original, fecha_entrega)
+                        VALUES (:id_tarea, :id_usuario, :ruta_archivo, :nombre_original, :fecha_entrega)
+                        ON DUPLICATE KEY UPDATE ruta_archivo = VALUES(ruta_archivo), nombre_original = VALUES(nombre_original),
+                            fecha_entrega = VALUES(fecha_entrega)");
+                    $sentencia->execute([
+                        ':id_tarea' => $id_tarea,
+                        ':id_usuario' => $_SESSION['id_usuario'],
+                        ':ruta_archivo' => $nombre_guardado,
+                        ':nombre_original' => mb_substr($nombre_original, 0, 255),
+                        ':fecha_entrega' => $fechaHora,
+                    ]);
+                    $pdo->commit();
+                    return $anterior;
+                } catch (Throwable $error) {
+                    $pdo->rollBack();
+                    throw $error;
+                }
+            });
+        } catch (Throwable $error) {
+            borrarArchivoSubido($nombre_guardado);
+            $_SESSION['mensaje'] = $error instanceof BloqueoOcupado
+                ? 'Ya hay una subida de esta entrega en curso, espere un momento'
+                : 'No se pudo registrar la entrega, intente de nuevo';
+            $_SESSION['icono'] = 'error';
+            header('Location: ../../../admin/tareas/show.php?id=' . $id_tarea);
+            exit();
+        }
 
         borrarArchivoSubido($ruta_anterior ?: null);
 

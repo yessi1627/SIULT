@@ -33,6 +33,8 @@ require_once __DIR__ . '/../config/entorno.php';
 require_once __DIR__ . '/../config/estados_tarea.php';
 require_once __DIR__ . '/../config/archivos.php';
 require_once __DIR__ . '/../lib/funciones_notas.php';
+require_once __DIR__ . '/../config/redis.php';
+require_once __DIR__ . '/../config/bloqueos.php';
 
 // Calculo la URL donde vive la API (ej. /proyectoGestorEscolar/api) a partir de la carpeta del servidor
 function rutaBaseApi(): string
@@ -89,6 +91,9 @@ try {
     $enrutador->despachar($peticion)->enviar();
 } catch (ErrorHttp $error) {
     Respuesta::enviarError($error->codigoHttp, $error->getMessage(), $error->detalles);
+} catch (BloqueoOcupado $error) {
+    // Otro proceso tiene el bloqueo del mismo recurso (GET_LOCK): responder 409 para que el cliente reintente
+    Respuesta::enviarError(409, $error->getMessage());
 } catch (QueryException $error) {
     // 23000: violacion de una restriccion (llave unica o foranea)
     if ($error->getCode() === '23000') {
