@@ -7,6 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   header('Location: ../../../admin/matriculas/index.php');
   exit();
 }
+verificarCsrf('admin/matriculas/index.php');
 
 $id_usuario = filter_input(INPUT_POST, 'id_usuario', FILTER_VALIDATE_INT);
 $id_materias = $_POST['id_materias'] ?? [];

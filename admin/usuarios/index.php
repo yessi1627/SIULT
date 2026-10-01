@@ -66,7 +66,7 @@ include('../../config/controllers/usuarios/listado_usuarios.php');
                                                 <div class="btn-group" role="group" aria-label="Basic example">
                                                     <a href="show.php?id=<?= $id_usuario; ?>" type="button" class="btn btn-info btn-sm"><i class="bi bi-eye"></i></a>
                                                     <a href="edit.php?id=<?= $id_usuario; ?>" type="button" class="btn btn-success btn-sm"><i class="bi bi-pencil"></i></a>
-                                                    <form action="../../config/controllers/usuarios/delete.php" method="POST">
+                                                    <form action="../../config/controllers/usuarios/delete.php" method="POST"><?= campoCsrf() ?>
                                                         <input type="text" value="<?= $id_usuario; ?>" hidden name="id_usuario">
                                                         <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i></button>
                                                     </form>

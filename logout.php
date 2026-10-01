@@ -6,6 +6,8 @@ $mensaje = $_SESSION['mensaje'] ?? null;
 session_destroy();
 
 include('config/config.php');
+// Inicio una sesion nueva y limpia para el formulario de login que muestra esta pagina
+require_once __DIR__ . '/config/seguridad.php';
 ?>
 
 <!DOCTYPE html>
@@ -39,7 +41,7 @@ include('config/config.php');
       <div class="card-body login-card-body">
         <p class="login-box-msg">Digite sus credenciales</p>
 
-        <form action="controler_login.php" method="post">
+        <form action="controler_login.php" method="post"><?= campoCsrf() ?>
           <div class="input-group mb-3">
             <input type="email" name="email" class="form-control" placeholder="Email">
             <div class="input-group-append">

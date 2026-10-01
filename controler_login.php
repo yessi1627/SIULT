@@ -1,6 +1,11 @@
 <?php
 
 include('config/config.php');
+require_once __DIR__ . '/config/seguridad.php';
+
+// Verifico que el formulario de login venga de la pagina del sistema
+verificarCsrf('index.php');
+
 $email = trim($_POST['email'] ?? '');
 $password = $_POST['password'] ?? '';
 

@@ -70,7 +70,7 @@ include('../../config/controllers/materias/listado_de_materias.php');
                                                             class="btn btn-success btn-sm"><i class="bi bi-pencil"></i></a>
                                                         <form action="../../config/controllers/materias/delete.php"
                                                             onclick="preguntar<?= $id_materia; ?>(event)" method="post"
-                                                            id="miFormulario<?= $id_materia; ?>">
+                                                            id="miFormulario<?= $id_materia; ?>"><?= campoCsrf() ?>
                                                             <input type="text" name="id_materia" value="<?= $id_materia; ?>"
                                                                 hidden>
                                                             <button type="submit" class="btn btn-danger btn-sm"

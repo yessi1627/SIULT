@@ -38,7 +38,7 @@ include('../layout/parte1.php');
               <h3 class="card-title">Matricular estudiante</h3>
             </div>
             <div class="card-body">
-              <form action="../../config/controllers/matriculas/create.php" method="POST">
+              <form action="../../config/controllers/matriculas/create.php" method="POST"><?= campoCsrf() ?>
                 <div class="form-group">
                   <label for="id_usuario">Estudiante</label>
                   <select id="id_usuario" name="id_usuario" class="form-control" required>

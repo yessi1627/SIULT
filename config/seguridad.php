@@ -61,6 +61,32 @@ function exigirRol(array $rolesPermitidos, bool $respuestaJson = false): void
     redirigirConMensaje('admin/home.php', 'No tiene permisos para realizar esta accion');
 }
 
+// Obtengo el token CSRF de la sesion; lo genero una sola vez por sesion
+function tokenCsrf(): string
+{
+    if (empty($_SESSION['token_csrf'])) {
+        $_SESSION['token_csrf'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['token_csrf'];
+}
+
+// Devuelvo el campo oculto que agrego dentro de cada formulario POST
+function campoCsrf(): string
+{
+    return '<input type="hidden" name="token_csrf" value="' . htmlspecialchars(tokenCsrf(), ENT_QUOTES, 'UTF-8') . '">';
+}
+
+// Verifico que el formulario venga de una pagina del sistema comparando el token enviado con el de la sesion
+function verificarCsrf(string $rutaSiFalla = 'admin/home.php'): void
+{
+    $tokenEnviado = $_POST['token_csrf'] ?? '';
+    $tokenSesion = $_SESSION['token_csrf'] ?? '';
+    if ($tokenSesion !== '' && is_string($tokenEnviado) && hash_equals($tokenSesion, $tokenEnviado)) {
+        return;
+    }
+    redirigirConMensaje($rutaSiFalla, 'El formulario expiro, recargue la pagina e intente de nuevo');
+}
+
 // Algunos controladores solo se incluyen desde una vista (listados y datos).
 // Si alguien los abre directamente por URL respondo 404 en vez de ejecutarlos.
 function impedirAccesoDirecto(string $archivo): void

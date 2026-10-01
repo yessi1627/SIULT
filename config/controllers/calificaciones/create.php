@@ -7,6 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../../../admin/tareas/index.php');
     exit();
 }
+verificarCsrf('admin/tareas/index.php');
 
 function rechazarCalificacion($mensaje, $id_tarea = null)
 {

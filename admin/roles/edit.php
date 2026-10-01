@@ -1,5 +1,5 @@
 <?php
-$id_rol = $_GET['id'];
+$id_rol = (int) ($_GET['id'] ?? 0);
 include('../../config/config.php');
 include('../../config/autenticacion_rol.php');
 include('../layout/parte1.php');
@@ -22,7 +22,7 @@ include('../../config/controllers/roles/datos_rol.php');
               <h3 class="card-title">Llene los datos</h3>
             </div>
             <div class="card-body">
-              <form action="../../config/controllers/roles/update.php" method="post">
+              <form action="../../config/controllers/roles/update.php" method="post"><?= campoCsrf() ?>
                 <div class="row">
                   <div class="col-md-12">
                     <div class="form-group">

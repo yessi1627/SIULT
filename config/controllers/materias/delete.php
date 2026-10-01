@@ -2,6 +2,7 @@
 include('../../config.php');
 require_once __DIR__ . '/../../seguridad.php';
 exigirRol(['ADMINISTRADOR']);
+verificarCsrf('admin/materias/index.php');
 $id_materia = $_POST['id_materia'];
 
 try {

@@ -2,6 +2,7 @@
 include('../../config.php');
 require_once __DIR__ . '/../../seguridad.php';
 exigirRol(['ADMINISTRADOR']);
+verificarCsrf('admin/materias/index.php');
 
 // Recibo datos del formulario
 $nombre_materia = $_POST['nombre_materia'];

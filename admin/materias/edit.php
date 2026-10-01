@@ -23,7 +23,7 @@ include('../../config/controllers/materias/datos_materia.php');
                             <h3 class="card-title">Llene los datos</h3>
                         </div>
                         <div class="card-body">
-                            <form action="../../config/controllers/materias/update.php" method="post">
+                            <form action="../../config/controllers/materias/update.php" method="post"><?= campoCsrf() ?>
                                 <div class="row">
                                     <div class="col-md-12">
                                         <div class="form-group">

@@ -1,8 +1,6 @@
 <?php
-// Me aseguro de que la sesion este iniciada antes de continuar
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// Cargo las funciones de seguridad; ahi tambien inicio la sesion y genero el token CSRF de los formularios
+require_once __DIR__ . '/seguridad.php';
 
 // Verifico si el usuario esta autenticado
 if (!isset($_SESSION['sesion email'])) {

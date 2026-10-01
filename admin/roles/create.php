@@ -20,7 +20,7 @@ include('../layout/parte1.php');
                             <h3 class="card-title">Digite los datos</h3>
                         </div>
                         <div class="card-body">
-                            <form action="../../config/controllers/roles/create.php" method="POST">
+                            <form action="../../config/controllers/roles/create.php" method="POST"><?= campoCsrf() ?>
                                 <div class="form-group">
                                     <label for="nombre_rol">Nombre del rol</label>
                                     <input type="text" name="nombre_rol" id="nombre_rol" class="form-control" required>

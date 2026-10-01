@@ -2,6 +2,7 @@
 include('../../config.php');
 require_once __DIR__ . '/../../seguridad.php';
 exigirRol(['ADMINISTRADOR']);
+verificarCsrf('admin/roles/index.php');
 $id_rol = $_POST['id_rol'];
 
 $sentencia = $pdo->prepare("DELETE FROM roles WHERE id_rol=:id_rol");
