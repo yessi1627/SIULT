@@ -1,6 +1,7 @@
 <?php
 include('../../config.php');
-session_start();
+require_once __DIR__ . '/../../seguridad.php';
+exigirRol(['ADMINISTRADOR', 'PROFESOR']);
 
 $id_tarea = $_POST['id_tarea'];
 

@@ -1,6 +1,7 @@
 <?php
 include('../../config.php');
-include('../../autenticacion_rol.php');
+require_once __DIR__ . '/../../seguridad.php';
+exigirRol(['ADMINISTRADOR', 'PROFESOR', 'ESTUDIANTE']);
 
 const TAMANO_MAXIMO_ARCHIVO = 5242880;
 const EXTENSIONES_PERMITIDAS = ['pdf', 'docx', 'jpg', 'jpeg', 'png', 'zip'];
@@ -63,7 +64,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $hora_actual = date('H:i:s');
 
     if ($fecha_actual > $tarea['fecha_entrega'] || ($fecha_actual == $tarea['fecha_entrega'] && $hora_actual > $tarea['hora_entrega'])) {
-        session_start();
         $_SESSION['mensaje'] = "La fecha y hora de entrega han pasado No puedes subir archivos";
         $_SESSION['icono'] = "error";
         header('Location: ../../../admin/tareas/show.php?id=' . $id_tarea);
@@ -84,13 +84,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $sentencia = $pdo->prepare("UPDATE tareas SET estado = 'completado' WHERE id_tarea = ?");
         $sentencia->execute([$id_tarea]);
 
-        session_start();
         $_SESSION['mensaje'] = "El archivo fue subido correctamente La tarea ha sido marcada como completada";
         $_SESSION['icono'] = "success";
         header('Location: ../../../admin/tareas/index.php');
         exit();
     } else {
-        session_start();
         $_SESSION['mensaje'] = "Hubo un error al subir el archivo Por favor intentalo de nuevo";
         $_SESSION['icono'] = "error";
         header('Location: ../../../admin/tareas/show.php?id=' . $id_tarea);

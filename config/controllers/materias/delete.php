@@ -1,5 +1,7 @@
 <?php
 include('../../config.php');
+require_once __DIR__ . '/../../seguridad.php';
+exigirRol(['ADMINISTRADOR']);
 $id_materia = $_POST['id_materia'];
 
 try {
@@ -11,7 +13,6 @@ try {
 
     if ($resultado['total'] > 0) {
         // Hay tareas asociadas no se puede eliminar
-        session_start();
         $_SESSION['mensaje'] = "No se puede eliminar esta materia porque tiene " . $resultado['total'] . " tarea(s) asociada(s)";
         $_SESSION['icono'] = "error";
     } else {
@@ -20,11 +21,9 @@ try {
         $sentencia->bindParam(':id_materia', $id_materia);
 
         if ($sentencia->execute()) {
-            session_start();
             $_SESSION['mensaje'] = "Se elimino la materia de manera correcta";
             $_SESSION['icono'] = "success";
         } else {
-            session_start();
             $_SESSION['mensaje'] = "Error al eliminar la materia";
             $_SESSION['icono'] = "error";
         }
@@ -32,11 +31,9 @@ try {
 } catch (PDOException $e) {
     // Manejo el error para que muestre un mensaje especifico
     if ($e->getCode() == '23000') {
-        session_start();
         $_SESSION['mensaje'] = "No se puede eliminar esta materia porque tiene tareas asociadas";
         $_SESSION['icono'] = "error";
     } else {
-        session_start();
         $_SESSION['mensaje'] = "Error: " . $e->getMessage();
         $_SESSION['icono'] = "error";
     }

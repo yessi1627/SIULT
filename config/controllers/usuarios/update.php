@@ -1,5 +1,7 @@
 <?php
 include('../../config.php');
+require_once __DIR__ . '/../../seguridad.php';
+exigirRol(['ADMINISTRADOR']);
 
 $id_usuario = $_POST['id_usuario'];
 $nombres = $_POST['nombres'];
@@ -20,18 +22,15 @@ if ($password == '') {
 
     try {
         if ($sentencia->execute()) {
-            session_start();
             $_SESSION['mensaje'] = "El usuario se actualizo correctamente";
             $_SESSION['icono'] = "success";
             header('Location: ../../../admin/usuarios/index.php');
         } else {
-            session_start();
             $_SESSION['mensaje'] = "El usuario no se pudo actualizar en la base de datos";
             $_SESSION['icono'] = "error";
             header('Location: ../../../admin/usuarios/index.php');
         }
     } catch (PDOException $e) {
-        session_start();
         $_SESSION['mensaje'] = "El email del usuario ya existe en la base de datos";
         $_SESSION['icono'] = "error";
         header('Location: ../../../admin/usuarios/index.php');
@@ -51,25 +50,21 @@ if ($password == '') {
 
         try {
             if ($sentencia->execute()) {
-                session_start();
                 $_SESSION['mensaje'] = "Usuario actualizado correctamente";
                 $_SESSION['icono'] = "success";
                 header('Location: ../../../admin/usuarios/index.php');
             } else {
-                session_start();
                 $_SESSION['mensaje'] = "El usuario no se pudo actualizar en la base de datos";
                 $_SESSION['icono'] = "error";
                 header('Location: ../../../admin/usuarios/index.php');
             }
         } catch (PDOException $e) {
-            session_start();
             $_SESSION['mensaje'] = "El email del usuario ya existe en la base de datos";
             $_SESSION['icono'] = "error";
             header('Location: ../../../admin/usuarios/index.php');
             exit();
         }
     } else {
-        session_start();
         $_SESSION['mensaje'] = "Las contraseñas no coinciden";
         $_SESSION['icono'] = "error";
         header('Location: ../../../admin/usuarios/index.php');

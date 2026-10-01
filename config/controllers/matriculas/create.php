@@ -1,6 +1,7 @@
 <?php
 include('../../config.php');
-include('../../autenticacion_rol.php');
+require_once __DIR__ . '/../../seguridad.php';
+exigirRol(['ADMINISTRADOR']);
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   header('Location: ../../../admin/matriculas/index.php');
@@ -14,7 +15,6 @@ $id_materias = array_values(array_filter(array_map('intval', (array) $id_materia
 }));
 
 if (!$id_usuario || count($id_materias) === 0) {
-  session_start();
   $_SESSION['mensaje'] = 'Seleccione un estudiante y al menos una materia';
   $_SESSION['icono'] = 'error';
   header('Location: ../../../admin/matriculas/index.php');
@@ -28,7 +28,6 @@ $estudiante = $pdo->prepare("SELECT u.id_usuario
 $estudiante->execute([':id_usuario' => $id_usuario]);
 
 if (!$estudiante->fetchColumn()) {
-  session_start();
   $_SESSION['mensaje'] = 'El usuario seleccionado no es un estudiante activo';
   $_SESSION['icono'] = 'error';
   header('Location: ../../../admin/matriculas/index.php');
@@ -51,14 +50,12 @@ try {
   }
   $pdo->commit();
 
-  session_start();
   $_SESSION['mensaje'] = 'Matrícula(s) registrada(s) correctamente';
   $_SESSION['icono'] = 'success';
 } catch (PDOException $e) {
   if ($pdo->inTransaction()) {
     $pdo->rollBack();
   }
-  session_start();
   $_SESSION['mensaje'] = 'No se pudieron registrar las matrículas';
   $_SESSION['icono'] = 'error';
 }

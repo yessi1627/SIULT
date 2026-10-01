@@ -1,5 +1,7 @@
 <?php
 include('../../config.php');
+require_once __DIR__ . '/../../seguridad.php';
+exigirRol(['ADMINISTRADOR', 'PROFESOR']);
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $id_tarea = $_POST['id_tarea'];
@@ -13,11 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $sentencia = $pdo->prepare("UPDATE tareas SET id_materia = ?, titulo = ?, descripcion = ?, fecha_entrega = ?, hora_entrega = ?, estado = ? WHERE id_tarea = ?");
 
     if ($sentencia->execute([$id_materia, $titulo, $descripcion, $fecha_entrega, $hora_entrega, $estado, $id_tarea])) {
-        session_start();
         $_SESSION['mensaje'] = "La tarea se ha actualizado correctamente";
         $_SESSION['icono'] = "success";
     } else {
-        session_start();
         $_SESSION['mensaje'] = "Error al actualizar la tarea";
         $_SESSION['icono'] = "error";
     }

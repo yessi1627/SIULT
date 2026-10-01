@@ -1,5 +1,7 @@
 <?php
 include('../../config.php');
+require_once __DIR__ . '/../../seguridad.php';
+exigirRol(['ADMINISTRADOR', 'PROFESOR']);
 include('../../../observers/Subject.php');
 include('../../../observers/NotificacionObserver.php');
 
@@ -42,8 +44,7 @@ if ($intervalo->days <= 2 && $intervalo->invert == 0) {
     $subject->notifyObservers(['mensaje' => $mensaje_vencimiento, 'id_tarea' => $id_tarea]);
 }
 
-// Inicio sesion y establezco mensaje de exito
-session_start();
+// Establezco mensaje de exito
 $_SESSION['mensaje'] = "Se ha creado la tarea con exito";
 $_SESSION['icono'] = "success";
 

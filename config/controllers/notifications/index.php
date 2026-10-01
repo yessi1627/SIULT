@@ -1,5 +1,7 @@
 <?php
 include('../../config.php');
+require_once __DIR__ . '/../../seguridad.php';
+exigirSesion(true);
 
 // Obtengo todas las notificaciones
 $sql = "SELECT * FROM notificaciones";

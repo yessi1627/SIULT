@@ -1,5 +1,7 @@
 <?php
 include('../../config.php');
+require_once __DIR__ . '/../../seguridad.php';
+exigirRol(['ADMINISTRADOR']);
 
 $nombres = $_POST['nombres'];
 $rol_id = $_POST['rol_id'];
@@ -21,24 +23,20 @@ if ($password == $password_repeat) {
 
     try {
         if ($sentencia->execute()) {
-            session_start();
             $_SESSION['mensaje'] = "Usuario registrado correctamente";
             $_SESSION['icono'] = "success";
             header('Location: ../../../admin/usuarios/index.php');
         } else {
-            session_start();
             $_SESSION['mensaje'] = "El usuario no se pudo registrar";
             $_SESSION['icono'] = "error";
             header('Location: ../../../admin/usuarios/index.php');
         }
     } catch (PDOException $e) {
-        session_start();
         $_SESSION['mensaje'] = "El email del usuario ya existe en la base de datos";
         $_SESSION['icono'] = "error";
         header('Location: ../../../admin/usuarios/create.php');
     }
 } else {
-    session_start();
     $_SESSION['mensaje'] = "Las contraseñas no coinciden";
     $_SESSION['icono'] = "error";
     header('Location: ../../../admin/usuarios/create.php');

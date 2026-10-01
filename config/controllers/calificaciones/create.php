@@ -1,6 +1,7 @@
 <?php
 include('../../config.php');
-include('../../autenticacion_rol.php');
+require_once __DIR__ . '/../../seguridad.php';
+exigirRol(['ADMINISTRADOR', 'PROFESOR']);
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../../../admin/tareas/index.php');
@@ -9,7 +10,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 function rechazarCalificacion($mensaje, $id_tarea = null)
 {
-    session_start();
     $_SESSION['mensaje'] = $mensaje;
     $_SESSION['icono'] = 'error';
     $destino = $id_tarea ? '../../../admin/tareas/show.php?id=' . $id_tarea : '../../../admin/tareas/index.php';
@@ -62,11 +62,9 @@ try {
         ':fecha_calificacion' => $fechaHora,
     ]);
 
-    session_start();
     $_SESSION['mensaje'] = 'La calificación fue guardada correctamente';
     $_SESSION['icono'] = 'success';
 } catch (PDOException $e) {
-    session_start();
     $_SESSION['mensaje'] = 'No se pudo guardar la calificación';
     $_SESSION['icono'] = 'error';
 }
