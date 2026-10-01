@@ -1,5 +1,5 @@
 <?php
-include('Observer.php');
+require_once __DIR__ . '/Observer.php';
 
 class NotificacionObserver implements Observer
 {

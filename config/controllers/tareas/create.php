@@ -4,13 +4,15 @@ require_once __DIR__ . '/../../seguridad.php';
 exigirRol(['ADMINISTRADOR', 'PROFESOR']);
 verificarCsrf('admin/tareas/create.php');
 require_once __DIR__ . '/../../estados_tarea.php';
-include('../../../observers/Subject.php');
-include('../../../observers/NotificacionObserver.php');
+require_once __DIR__ . '/../../../observers/Subject.php';
+require_once __DIR__ . '/../../../observers/NotificacionObserver.php';
+require_once __DIR__ . '/../../../observers/ColaNotificacionesObserver.php';
 
-// PATRON OBSERVER
+// PATRON OBSERVER: un observer guarda el aviso en MySQL y otro lo publica en la cola de Redis
 $subject = new Subject();
 $notificacionObserver = new NotificacionObserver();
 $subject->addObserver($notificacionObserver);
+$subject->addObserver(new ColaNotificacionesObserver());
 
 // Obtengo los datos del formulario
 $id_materia = $_POST['id_materia'];
@@ -34,7 +36,7 @@ $id_tarea = $pdo->lastInsertId();
 
 // Notifico la creacion de la tarea
 $mensaje = "Se ha creado una nueva tarea en la materia $nombre_materia: $titulo";
-$subject->notifyObservers(['mensaje' => $mensaje, 'id_tarea' => $id_tarea]);
+$subject->notifyObservers(['mensaje' => $mensaje, 'id_tarea' => $id_tarea, 'id_materia' => $id_materia, 'tipo' => 'tarea_creada']);
 
 // Verifico si la tarea esta proxima a vencer
 $fecha_actual = new DateTime();
@@ -43,7 +45,7 @@ $intervalo = $fecha_actual->diff($fecha_entrega_dt);
 
 if ($intervalo->days <= 2 && $intervalo->invert == 0) {
     $mensaje_vencimiento = "La tarea '$titulo' de la materia '$nombre_materia' esta proxima a vencer";
-    $subject->notifyObservers(['mensaje' => $mensaje_vencimiento, 'id_tarea' => $id_tarea]);
+    $subject->notifyObservers(['mensaje' => $mensaje_vencimiento, 'id_tarea' => $id_tarea, 'id_materia' => $id_materia, 'tipo' => 'tarea_por_vencer']);
 }
 
 // Establezco mensaje de exito

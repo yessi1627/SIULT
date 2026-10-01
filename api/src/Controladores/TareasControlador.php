@@ -14,11 +14,13 @@ use Api\Modelos\Usuario;
 use Api\Seguridad\Sesion;
 use DateTime;
 use Illuminate\Database\Eloquent\Builder;
+use ColaNotificacionesObserver;
 use NotificacionObserver;
 use Subject;
 
 require_once __DIR__ . '/../../../observers/Subject.php';
 require_once __DIR__ . '/../../../observers/NotificacionObserver.php';
+require_once __DIR__ . '/../../../observers/ColaNotificacionesObserver.php';
 
 final class TareasControlador
 {
@@ -159,25 +161,31 @@ final class TareasControlador
         return $datos;
     }
 
-    // Reutilizo el patron Observer de las vistas PHP (observers/) para registrar las notificaciones
+    // Reutilizo el patron Observer de las vistas PHP (observers/): un observer guarda el aviso en MySQL
+    // y otro lo publica en la cola de Redis para el microservicio de notificaciones (mensajeria asincrona)
     private function notificarCreacion(Tarea $tarea): void
     {
-        // NotificacionObserver usa la variable global $pdo; le paso la conexion de Eloquent
+        // Los observers usan la variable global $pdo; les paso la conexion de Eloquent
         $GLOBALS['pdo'] = BaseDatos::pdo();
         $sujeto = new Subject();
         $sujeto->addObserver(new NotificacionObserver());
+        $sujeto->addObserver(new ColaNotificacionesObserver());
 
         $nombreMateria = $tarea->materia?->nombre_materia ?? '';
         $sujeto->notifyObservers([
+            'tipo' => 'tarea_creada',
             'mensaje' => "Se ha creado una nueva tarea en la materia $nombreMateria: {$tarea->titulo}",
             'id_tarea' => $tarea->id_tarea,
+            'id_materia' => $tarea->id_materia,
         ]);
 
         $intervalo = (new DateTime())->diff(new DateTime($tarea->fecha_entrega));
         if ($intervalo->days <= 2 && $intervalo->invert === 0) {
             $sujeto->notifyObservers([
+                'tipo' => 'tarea_por_vencer',
                 'mensaje' => "La tarea '{$tarea->titulo}' de la materia '$nombreMateria' esta proxima a vencer",
                 'id_tarea' => $tarea->id_tarea,
+                'id_materia' => $tarea->id_materia,
             ]);
         }
     }
