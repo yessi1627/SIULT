@@ -1,5 +1,5 @@
 <?php
-$id_usuario = $_GET['id'];
+$id_usuario = (int) ($_GET['id'] ?? 0);
 include('../../config/config.php');
 include('../../config/autenticacion_rol.php');
 include('../layout/parte1.php');

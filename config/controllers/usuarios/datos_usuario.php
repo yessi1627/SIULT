@@ -2,11 +2,12 @@
 // Este archivo solo se incluye desde una vista; no se puede abrir directamente
 require_once __DIR__ . '/../../seguridad.php';
 impedirAccesoDirecto(__FILE__);
-$sql_usuarios = "SELECT * FROM usuarios as usu INNER JOIN roles as rol on rol.id_rol = usu.rol_id WHERE usu.estado = '1' and usu.id_usuario = '$id_usuario'";
+$sql_usuarios = "SELECT * FROM usuarios as usu INNER JOIN roles as rol on rol.id_rol = usu.rol_id WHERE usu.estado = '1' and usu.id_usuario = :id_usuario";
+// Uso sentencia preparada; antes el id se concatenaba en el SQL y permitia inyeccion
 // lo que estoy haciendo con inner join es traer los datos de la tabla roles que estan relacionados con la tabla usuarios, esto me permite traer el nombre del rol en lugar del id del rol
 
 $query_usuarios = $pdo->prepare($sql_usuarios);
-$query_usuarios->execute();
+$query_usuarios->execute([':id_usuario' => $id_usuario]);
 $usuarios = $query_usuarios->fetchAll(PDO::FETCH_ASSOC);
 
 foreach($usuarios as $usuario) {
