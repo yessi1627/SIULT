@@ -51,21 +51,39 @@ if (!$sentencia->fetchColumn()) {
     rechazarCalificacion('El estudiante indicado no esta matriculado en la materia de la tarea', $id_tarea);
 }
 
+// Bloqueo optimista: el formulario envia la version de la nota que mostro.
+// Si otro profesor la cambio despues, la version ya no coincide y no piso su nota.
+$version = filter_input(INPUT_POST, 'version', FILTER_VALIDATE_INT);
+$parametros = [
+    ':id_tarea' => $id_tarea,
+    ':id_usuario' => $id_usuario,
+    ':nota' => $nota,
+    ':observacion' => $observacion !== '' ? $observacion : null,
+    ':fecha_calificacion' => $fechaHora,
+];
+
 try {
-    $sentencia = $pdo->prepare("INSERT INTO calificaciones (id_tarea, id_usuario, nota, observacion, fecha_calificacion)
-        VALUES (:id_tarea, :id_usuario, :nota, :observacion, :fecha_calificacion)
-        ON DUPLICATE KEY UPDATE nota = VALUES(nota), observacion = VALUES(observacion), fecha_calificacion = VALUES(fecha_calificacion)");
-    $sentencia->execute([
-        ':id_tarea' => $id_tarea,
-        ':id_usuario' => $id_usuario,
-        ':nota' => $nota,
-        ':observacion' => $observacion !== '' ? $observacion : null,
-        ':fecha_calificacion' => $fechaHora,
-    ]);
+    if ($version) {
+        $sentencia = $pdo->prepare("UPDATE calificaciones
+            SET nota = :nota, observacion = :observacion, fecha_calificacion = :fecha_calificacion, version = version + 1
+            WHERE id_tarea = :id_tarea AND id_usuario = :id_usuario AND version = :version");
+        $sentencia->execute($parametros + [':version' => $version]);
+        if ($sentencia->rowCount() === 0) {
+            rechazarCalificacion('Otro usuario modificó esta nota mientras usted la editaba. Revise el valor actual y vuelva a guardar.', $id_tarea);
+        }
+    } else {
+        // Nota nueva; si otro profesor la creo al mismo tiempo, la llave unica lanza un error 23000
+        $sentencia = $pdo->prepare("INSERT INTO calificaciones (id_tarea, id_usuario, nota, observacion, fecha_calificacion, version)
+            VALUES (:id_tarea, :id_usuario, :nota, :observacion, :fecha_calificacion, 1)");
+        $sentencia->execute($parametros);
+    }
 
     $_SESSION['mensaje'] = 'La calificación fue guardada correctamente';
     $_SESSION['icono'] = 'success';
 } catch (PDOException $e) {
+    if ($e->getCode() === '23000') {
+        rechazarCalificacion('Otro usuario ya registró una nota para este estudiante. Revise el valor actual.', $id_tarea);
+    }
     $_SESSION['mensaje'] = 'No se pudo guardar la calificación';
     $_SESSION['icono'] = 'error';
 }

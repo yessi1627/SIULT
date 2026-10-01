@@ -33,7 +33,7 @@ if ($es_estudiante) {
 
 $estudiantes_calificacion = [];
 if (in_array($_SESSION['role'] ?? '', ['ADMINISTRADOR', 'PROFESOR'], true)) {
-    $sql_estudiantes = "SELECT u.id_usuario, u.nombres, u.email, c.nota, c.observacion,
+    $sql_estudiantes = "SELECT u.id_usuario, u.nombres, u.email, c.nota, c.observacion, c.version,
             e.ruta_archivo AS ruta_entrega, e.fecha_entrega AS fecha_entrega_estudiante
         FROM usuarios u
         INNER JOIN roles r ON r.id_rol = u.rol_id
@@ -168,6 +168,7 @@ if (in_array($_SESSION['role'] ?? '', ['ADMINISTRADOR', 'PROFESOR'], true)) {
                                                         <form action="../../config/controllers/calificaciones/create.php" method="POST" class="form-inline"><?= campoCsrf() ?>
                                                             <input type="hidden" name="id_tarea" value="<?= $id_tarea ?>">
                                                             <input type="hidden" name="id_usuario" value="<?= (int) $estudiante['id_usuario']; ?>">
+                                                            <input type="hidden" name="version" value="<?= (int) ($estudiante['version'] ?? 0); ?>">
                                                             <input type="number" step="0.01" min="0" max="5" name="nota" class="form-control form-control-sm mr-1" style="width: 80px;"
                                                                 value="<?= $estudiante['nota'] !== null ? htmlspecialchars($estudiante['nota'], ENT_QUOTES, 'UTF-8') : ''; ?>" required>
                                                             <input type="text" name="observacion" class="form-control form-control-sm mr-1" placeholder="Observación"

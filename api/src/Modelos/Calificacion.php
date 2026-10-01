@@ -11,8 +11,9 @@ class Calificacion extends Model
     protected $table = 'calificaciones';
     protected $primaryKey = 'id_calificacion';
     public $timestamps = false;
-    protected $fillable = ['id_tarea', 'id_usuario', 'nota', 'observacion', 'fecha_calificacion'];
-    protected $casts = ['nota' => 'float'];
+    protected $fillable = ['id_tarea', 'id_usuario', 'nota', 'observacion', 'fecha_calificacion', 'version'];
+    // version: contador para el bloqueo optimista (ver CalificacionesControlador::guardar)
+    protected $casts = ['nota' => 'float', 'version' => 'integer'];
 
     public function tarea(): BelongsTo
     {
@@ -33,6 +34,7 @@ class Calificacion extends Model
             'nota' => $this->nota,
             'observacion' => $this->observacion,
             'fecha' => $this->fecha_calificacion,
+            'version' => $this->version,
         ];
         if ($this->relationLoaded('usuario') && $this->usuario) {
             $datos['estudiante'] = $this->usuario->nombres;

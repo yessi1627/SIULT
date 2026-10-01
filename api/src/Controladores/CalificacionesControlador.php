@@ -26,8 +26,16 @@ final class CalificacionesControlador
         return Respuesta::ok($calificaciones->map(fn(Calificacion $c) => $c->paraApi())->values());
     }
 
-    // POST /calificaciones { id_tarea, id_usuario, nota, observacion }
-    // Si el estudiante ya tenia nota en esa tarea, la actualizo (una nota por tarea y estudiante)
+    /**
+     * POST /calificaciones { id_tarea, id_usuario, nota, observacion, version }
+     *
+     * CONCURRENCIA CON BLOQUEO OPTIMISTA: no bloqueo la fila mientras el profesor escribe la nota.
+     * El cliente envia la `version` que leyo; al guardar ejecuto
+     *     UPDATE ... SET version = version + 1 WHERE id_tarea = ? AND id_usuario = ? AND version = ?
+     * Si otro profesor guardo antes, la version ya cambio, el UPDATE afecta 0 filas y respondo 409
+     * en lugar de pisar su nota (se evita la "actualizacion perdida").
+     * Sin `version` se entiende que el cliente cree que la nota es nueva; si ya existe tambien es 409.
+     */
     public function guardar(Peticion $peticion): Respuesta
     {
         Sesion::exigirRol(['ADMINISTRADOR', 'PROFESOR']);
@@ -36,6 +44,7 @@ final class CalificacionesControlador
         $idUsuario = $validador->entero('id_usuario', 'El estudiante');
         $nota = $validador->decimal('nota', 'La nota', 0, 5);
         $observacion = $validador->texto('observacion', 'La observacion', false, 2000);
+        $version = $validador->entero('version', 'La version', false);
         $validador->verificar();
 
         $tarea = Tarea::find($idTarea) ?? throw ErrorHttp::noEncontrado('La tarea');
@@ -50,11 +59,24 @@ final class CalificacionesControlador
             throw ErrorHttp::solicitudInvalida('El estudiante indicado no esta matriculado en la materia de la tarea');
         }
 
-        $calificacion = Calificacion::updateOrCreate(
-            ['id_tarea' => $idTarea, 'id_usuario' => $idUsuario],
-            ['nota' => $nota, 'observacion' => $observacion, 'fecha_calificacion' => date('Y-m-d H:i:s')]
-        );
-        return new Respuesta($calificacion->paraApi(), $calificacion->wasRecentlyCreated ? 201 : 200);
+        $datos = ['nota' => $nota, 'observacion' => $observacion, 'fecha_calificacion' => date('Y-m-d H:i:s')];
+        $clave = ['id_tarea' => $idTarea, 'id_usuario' => $idUsuario];
+
+        if ($version === null) {
+            // Nota nueva: la llave unica (id_tarea, id_usuario) impide que dos profesores la creen a la vez
+            if (Calificacion::where($clave)->exists()) {
+                throw ErrorHttp::conflicto('Otro usuario ya registró una nota para este estudiante. Recargue para verla.');
+            }
+            $calificacion = Calificacion::create($clave + $datos + ['version' => 1]);
+            return Respuesta::creado($calificacion->paraApi());
+        }
+
+        // increment() genera: UPDATE ... SET version = version + 1, nota = ?, ... WHERE ... AND version = ?
+        $filas = Calificacion::where($clave)->where('version', $version)->increment('version', 1, $datos);
+        if ($filas === 0) {
+            throw ErrorHttp::conflicto('Otro usuario modificó esta nota mientras usted la editaba. Recargue para ver el valor actual.');
+        }
+        return Respuesta::ok(Calificacion::where($clave)->firstOrFail()->paraApi());
     }
 
     // GET /calificaciones/promedios?id_materia=3
