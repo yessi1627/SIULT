@@ -1,0 +1,20 @@
+{
+  "name": "siult-servicios",
+  "private": true,
+  "description": "Microservicios de SIULT: API Gateway, notificaciones y calendario",
+  "workspaces": [
+    "gateway",
+    "notificaciones",
+    "calendario"
+  ],
+  "scripts": {
+    "iniciar": "node iniciar-todo.mjs",
+    "gateway": "npm start -w gateway",
+    "notificaciones": "npm start -w notificaciones",
+    "calendario": "npm start -w calendario",
+    "test": "npm test --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

@@ -9,3 +9,6 @@ config/uploads/*
 
 # Dependencias de Composer (se instalan con: composer install)
 /vendor/
+
+# Dependencias de los microservicios Node (se instalan con: cd servicios && npm install)
+node_modules/
