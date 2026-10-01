@@ -26,7 +26,7 @@ include('../../config/controllers/materias/listado_de_materias.php');
                             <h3 class="card-title">Digite los datos</h3>
                         </div>
                         <div class="card-body">
-                            <form action="../../config/controllers/tareas/create.php" method="POST">
+                            <form action="../../config/controllers/tareas/create.php" method="POST"><?= campoCsrf() ?>
                                 <div class="row">
                                     <div class="col-md-12">
                                         <div class="form-group">

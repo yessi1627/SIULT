@@ -2,6 +2,8 @@
 include('../../config.php');
 require_once __DIR__ . '/../../seguridad.php';
 exigirRol(['ADMINISTRADOR', 'PROFESOR']);
+verificarCsrf('admin/tareas/create.php');
+require_once __DIR__ . '/../../estados_tarea.php';
 include('../../../observers/Subject.php');
 include('../../../observers/NotificacionObserver.php');
 
@@ -24,8 +26,8 @@ $materia = $sentencia->fetch(PDO::FETCH_ASSOC);
 $nombre_materia = $materia['nombre_materia'];
 
 // Inserto la nueva tarea en la base de datos
-$sentencia = $pdo->prepare("INSERT INTO tareas (id_materia, titulo, descripcion, fecha_entrega, hora_entrega, estado) VALUES (?, ?, ?, ?, ?, 'Pendiente')");
-$sentencia->execute([$id_materia, $titulo, $descripcion, $fecha_entrega, $hora_entrega]);
+$sentencia = $pdo->prepare("INSERT INTO tareas (id_materia, titulo, descripcion, fecha_entrega, hora_entrega, estado) VALUES (?, ?, ?, ?, ?, ?)");
+$sentencia->execute([$id_materia, $titulo, $descripcion, $fecha_entrega, $hora_entrega, ESTADO_TAREA_PENDIENTE]);
 
 // Obtengo el ID de la tarea recien creada
 $id_tarea = $pdo->lastInsertId();

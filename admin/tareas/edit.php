@@ -1,6 +1,7 @@
 <?php
 include('../../config/config.php');
 include('../../config/autenticacion_rol.php');
+require_once __DIR__ . '/../../config/estados_tarea.php';
 
 // Verifico si el rol es valido para editar tareas
 if (!in_array($_SESSION['role'], ['ADMINISTRADOR', 'PROFESOR'])) {
@@ -53,7 +54,7 @@ $materias = $sentencia->fetchAll(PDO::FETCH_ASSOC);
                             <h3 class="card-title">Digite los datos</h3>
                         </div>
                         <div class="card-body">
-                            <form action="../../config/controllers/tareas/update.php" method="POST">
+                            <form action="../../config/controllers/tareas/update.php" method="POST"><?= campoCsrf() ?>
                                 <input type="hidden" name="id_tarea" value="<?= $tarea['id_tarea'] ?>">
                                 <div class="row">
                                     <div class="col-md-12">
@@ -102,8 +103,9 @@ $materias = $sentencia->fetchAll(PDO::FETCH_ASSOC);
                                         <div class="form-group">
                                             <label for="">Estado</label>
                                             <select class="form-control" name="estado" required>
-                                                <option value="pendiente" <?= $tarea['estado'] == 'pendiente' ? 'selected' : '' ?>>Pendiente</option>
-                                                <option value="completada" <?= $tarea['estado'] == 'completada' ? 'selected' : '' ?>>Completada</option>
+                                                <?php foreach (ESTADOS_TAREA as $estado_opcion): ?>
+                                                    <option value="<?= $estado_opcion ?>" <?= $tarea['estado'] === $estado_opcion ? 'selected' : '' ?>><?= $estado_opcion ?></option>
+                                                <?php endforeach; ?>
                                             </select>
                                         </div>
                                     </div>
@@ -129,7 +131,7 @@ $materias = $sentencia->fetchAll(PDO::FETCH_ASSOC);
                             <h3 class="card-title">Subir Archivo</h3>
                         </div>
                         <div class="card-body">
-                            <form action="../../config/controllers/tareas/upload.php" method="POST" enctype="multipart/form-data">
+                            <form action="../../config/controllers/tareas/upload.php" method="POST" enctype="multipart/form-data"><?= campoCsrf() ?>
                                 <input type="hidden" name="id_tarea" value="<?= $tarea['id_tarea'] ?>">
                                 <div class="form-group">
                                     <label for="archivo">Archivo</label>

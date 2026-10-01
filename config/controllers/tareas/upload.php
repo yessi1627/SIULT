@@ -1,6 +1,7 @@
 <?php
 include('../../config.php');
 require_once __DIR__ . '/../../seguridad.php';
+require_once __DIR__ . '/../../estados_tarea.php';
 exigirRol(['ADMINISTRADOR', 'PROFESOR', 'ESTUDIANTE']);
 
 const TAMANO_MAXIMO_ARCHIVO = 5242880;
@@ -23,8 +24,11 @@ function rechazarArchivo($mensaje)
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    verificarCsrf('admin/tareas/index.php');
+
     $id_tarea = filter_input(INPUT_POST, 'id_tarea', FILTER_VALIDATE_INT);
     $archivo = $_FILES['archivo'] ?? null;
+    $es_estudiante = ($_SESSION['role'] ?? '') === 'ESTUDIANTE';
 
     if (!$id_tarea || !$archivo || $archivo['error'] !== UPLOAD_ERR_OK) {
         rechazarArchivo('El archivo no pudo ser recibido');
@@ -47,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     $sql_tarea = "SELECT * FROM tareas WHERE id_tarea = :id_tarea";
     $parametros_tarea = [':id_tarea' => $id_tarea];
-    if (($_SESSION['role'] ?? '') === 'ESTUDIANTE') {
+    if ($es_estudiante) {
         $sql_tarea .= " AND id_materia IN (SELECT id_materia FROM matriculas WHERE id_usuario = :id_usuario)";
         $parametros_tarea[':id_usuario'] = $_SESSION['id_usuario'];
     }
@@ -60,38 +64,62 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         exit();
     }
 
-    $fecha_actual = date('Y-m-d');
-    $hora_actual = date('H:i:s');
-
-    if ($fecha_actual > $tarea['fecha_entrega'] || ($fecha_actual == $tarea['fecha_entrega'] && $hora_actual > $tarea['hora_entrega'])) {
+    // El plazo solo aplica a la entrega del estudiante; el profesor puede adjuntar material cuando quiera
+    if ($es_estudiante && !tareaAbiertaParaEntregas($tarea)) {
         $_SESSION['mensaje'] = "La fecha y hora de entrega han pasado No puedes subir archivos";
         $_SESSION['icono'] = "error";
         header('Location: ../../../admin/tareas/show.php?id=' . $id_tarea);
         exit();
     }
 
-    $directorio = '../../uploads/';
+    $directorio = __DIR__ . '/../../uploads/';
     if (!is_dir($directorio)) {
         mkdir($directorio, 0777, true);
     }
     $nombre_guardado = bin2hex(random_bytes(16)) . '.' . $extension;
     $ruta_archivo = $directorio . $nombre_guardado;
 
-    if (move_uploaded_file($archivo['tmp_name'], $ruta_archivo)) {
-        $sentencia = $pdo->prepare("INSERT INTO archivos (id_tarea, ruta_archivo) VALUES (?, ?)");
-        $sentencia->execute([$id_tarea, $nombre_guardado]);
-
-        $sentencia = $pdo->prepare("UPDATE tareas SET estado = 'completado' WHERE id_tarea = ?");
-        $sentencia->execute([$id_tarea]);
-
-        $_SESSION['mensaje'] = "El archivo fue subido correctamente La tarea ha sido marcada como completada";
-        $_SESSION['icono'] = "success";
-        header('Location: ../../../admin/tareas/index.php');
-        exit();
-    } else {
+    if (!move_uploaded_file($archivo['tmp_name'], $ruta_archivo)) {
         $_SESSION['mensaje'] = "Hubo un error al subir el archivo Por favor intentalo de nuevo";
         $_SESSION['icono'] = "error";
         header('Location: ../../../admin/tareas/show.php?id=' . $id_tarea);
         exit();
     }
+
+    if ($es_estudiante) {
+        // Busco si el estudiante ya tenia una entrega para borrar el archivo anterior al reemplazarla
+        $sentencia = $pdo->prepare("SELECT ruta_archivo FROM entregas WHERE id_tarea = :id_tarea AND id_usuario = :id_usuario");
+        $sentencia->execute([':id_tarea' => $id_tarea, ':id_usuario' => $_SESSION['id_usuario']]);
+        $ruta_anterior = $sentencia->fetchColumn();
+
+        // Registro SOLO la entrega de este estudiante; si vuelve a subir, reemplazo su entrega
+        $sentencia = $pdo->prepare("INSERT INTO entregas (id_tarea, id_usuario, ruta_archivo, nombre_original, fecha_entrega)
+            VALUES (:id_tarea, :id_usuario, :ruta_archivo, :nombre_original, :fecha_entrega)
+            ON DUPLICATE KEY UPDATE ruta_archivo = VALUES(ruta_archivo), nombre_original = VALUES(nombre_original),
+                fecha_entrega = VALUES(fecha_entrega)");
+        $sentencia->execute([
+            ':id_tarea' => $id_tarea,
+            ':id_usuario' => $_SESSION['id_usuario'],
+            ':ruta_archivo' => $nombre_guardado,
+            ':nombre_original' => mb_substr($nombre_original, 0, 255),
+            ':fecha_entrega' => $fechaHora,
+        ]);
+
+        if ($ruta_anterior && is_file($directorio . basename($ruta_anterior))) {
+            unlink($directorio . basename($ruta_anterior));
+        }
+
+        $_SESSION['mensaje'] = $ruta_anterior
+            ? "Tu entrega fue reemplazada correctamente"
+            : "Tu entrega fue registrada correctamente";
+    } else {
+        // El profesor o el administrador adjuntan material a la tarea
+        $sentencia = $pdo->prepare("INSERT INTO archivos (id_tarea, ruta_archivo) VALUES (?, ?)");
+        $sentencia->execute([$id_tarea, $nombre_guardado]);
+        $_SESSION['mensaje'] = "El archivo de la tarea fue subido correctamente";
+    }
+
+    $_SESSION['icono'] = "success";
+    header('Location: ../../../admin/tareas/show.php?id=' . $id_tarea);
+    exit();
 }

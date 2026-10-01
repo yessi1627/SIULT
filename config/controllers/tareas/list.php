@@ -15,10 +15,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 include('../../config.php');
+require_once __DIR__ . '/../../seguridad.php';
+require_once __DIR__ . '/../../estados_tarea.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// Sin sesion respondo 401 en JSON para que Angular pueda redirigir al login
+exigirSesion(true);
+
+// Antes de listar actualizo en una sola consulta las tareas que ya vencieron
+actualizarTareasVencidas($pdo);
 
 function obtenerTareasOrdenadas($orden)
 {
@@ -31,12 +35,20 @@ function obtenerTareasOrdenadas($orden)
         'fecha_entrega' => 't.fecha_entrega',
     ];
     $ordenSql = $ordenesPermitidos[$orden] ?? $ordenesPermitidos['title'];
-    $sql = "SELECT t.*, m.nombre_materia AS materia, a.ruta_archivo, c.nota, c.observacion AS observacion_calificacion
+    // El archivo de la tarea sale de una subconsulta (el ultimo) para no repetir filas;
+    // la entrega y la calificacion son las del usuario en sesion (una por tarea gracias al UNIQUE)
+    $sql = "SELECT t.*, m.nombre_materia AS materia,
+            (SELECT a.ruta_archivo FROM archivos a WHERE a.id_tarea = t.id_tarea ORDER BY a.id DESC LIMIT 1) AS ruta_archivo,
+            e.ruta_archivo AS ruta_entrega, e.fecha_entrega AS fecha_entrega_estudiante,
+            c.nota, c.observacion AS observacion_calificacion
         FROM tareas t
         LEFT JOIN materias m ON t.id_materia = m.id_materia
-        LEFT JOIN archivos a ON t.id_tarea = a.id_tarea
+        LEFT JOIN entregas e ON e.id_tarea = t.id_tarea AND e.id_usuario = :id_usuario_entrega
         LEFT JOIN calificaciones c ON c.id_tarea = t.id_tarea AND c.id_usuario = :id_usuario_calificacion";
-    $parametros = [':id_usuario_calificacion' => $_SESSION['id_usuario'] ?? 0];
+    $parametros = [
+        ':id_usuario_entrega' => $_SESSION['id_usuario'],
+        ':id_usuario_calificacion' => $_SESSION['id_usuario'],
+    ];
     if (($_SESSION['role'] ?? '') === 'ESTUDIANTE') {
         $sql .= " INNER JOIN matriculas mat ON mat.id_materia = t.id_materia
             WHERE mat.id_usuario = :id_usuario";
@@ -135,6 +147,9 @@ $tareasMap = array_map(function ($tarea) {
         'estado' => $tarea['estado'],
         'materia' => $tarea['materia'],
         'ruta_archivo' => $tarea['ruta_archivo'],
+        'ruta_entrega' => $tarea['ruta_entrega'],
+        'fecha_entrega_estudiante' => $tarea['fecha_entrega_estudiante'],
+        'estado_entrega' => estadoEntregaEstudiante($tarea, $tarea['ruta_entrega']),
         'fecha_entrega' => $tarea['fecha_entrega'],
         'hora_entrega' => $tarea['hora_entrega'],
         'nota' => $tarea['nota'],
@@ -143,4 +158,4 @@ $tareasMap = array_map(function ($tarea) {
 }, $tareas);
 
 header('Content-Type: application/json');
-echo json_encode(['data' => $tareasMap]);
+echo json_encode(['data' => $tareasMap, 'error' => null]);

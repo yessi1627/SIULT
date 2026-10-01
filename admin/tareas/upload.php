@@ -1,5 +1,6 @@
 <?php
 include('../../config/config.php');
+include('../../config/autenticacion_rol.php');
 include('../layout/parte1.php');
 
 $id_tarea = $_GET['id'];
@@ -42,7 +43,7 @@ $hora_actual = date('H:i:s');
                                 <h3 class="card-title">Subir archivo para la tarea</h3>
                             </div>
                             <div class="card-body">
-                                <form action="../../config/controllers/tareas/upload.php" method="POST" enctype="multipart/form-data">
+                                <form action="../../config/controllers/tareas/upload.php" method="POST" enctype="multipart/form-data"><?= campoCsrf() ?>
                                     <input type="hidden" name="id_tarea" value="<?= $id_tarea ?>">
                                     <div class="form-group">
                                         <label for="archivo">Archivo</label>

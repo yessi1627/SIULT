@@ -71,6 +71,13 @@ include('../../layout/mostrarMensajes.php');
             if (thCalificacion) thCalificacion.remove();
         }
 
+        // Escapo el texto que viene del servidor antes de meterlo en innerHTML para evitar XSS
+        function escaparHtml(valor) {
+            const div = document.createElement('div');
+            div.textContent = valor ?? '';
+            return div.innerHTML;
+        }
+
         function loadTable(order = 'title') {
             fetch('../../config/controllers/tareas/list.php?order=' + order)
                 .then(response => response.json())
@@ -85,12 +92,15 @@ include('../../layout/mostrarMensajes.php');
                     data.data.forEach(element => {
                         const row = document.createElement('tr');
 
-                        const fileHTML = element.ruta_archivo ?
-                            `<a href="../../config/uploads/${element.ruta_archivo}" target="_blank">Ver archivo</a>` :
-                            'No hay archivo';
+                        // El estudiante ve su propia entrega; el profesor y el administrador ven el archivo de la tarea
+                        const rutaMostrada = mostrarCalificacion ? element.ruta_entrega : element.ruta_archivo;
+                        const fileHTML = rutaMostrada ?
+                            `<a href="../../config/uploads/${encodeURIComponent(rutaMostrada)}" target="_blank">${mostrarCalificacion ? 'Ver mi entrega' : 'Ver archivo'}</a>` :
+                            (mostrarCalificacion ? 'Sin entregar' : 'No hay archivo');
+                        const estadoMostrado = mostrarCalificacion ? element.estado_entrega : element.estado;
 
                         const calificacionHTML = element.nota !== null && element.nota !== undefined ?
-                            `Nota: ${element.nota}${element.observacion_calificacion ? ' - ' + element.observacion_calificacion : ''}` :
+                            `Nota: ${escaparHtml(element.nota)}${element.observacion_calificacion ? ' - ' + escaparHtml(element.observacion_calificacion) : ''}` :
                             'Sin calificar';
                         const calificacionCeldaHTML = mostrarCalificacion ?
                             `<td><center>${calificacionHTML}</center></td>` : '';
@@ -100,7 +110,7 @@ include('../../layout/mostrarMensajes.php');
                         if (role === 'ADMINISTRADOR' || role === 'PROFESOR') {
                             adminEditHTML = `<a href="edit.php?id=${element.id}" class="btn btn-warning btn-sm">Editar</a>`;
                             adminRemoveHTML = `
-                                <form action="../../config/controllers/tareas/delete.php" method="POST" style="display:inline;">
+                                <form action="../../config/controllers/tareas/delete.php" method="POST" style="display:inline;"><?= campoCsrf() ?>
                                     <input type="hidden" name="id_tarea" value="${element.id}">
                                     <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i></button>
                                 </form>`;
@@ -114,13 +124,13 @@ include('../../layout/mostrarMensajes.php');
                         `;
 
                         row.innerHTML = `
-                            <td><center>${element.id}</center></td>
-                            <td><center>${element.titulo}</center></td>
-                            <td><center>${element.descripcion}</center></td>
-                            <td><center>${element.fecha_entrega}</center></td>
-                            <td><center>${element.hora_entrega}</center></td>
-                            <td><center>${element.estado}</center></td>
-                            <td><center>${element.materia}</center></td>
+                            <td><center>${escaparHtml(element.id)}</center></td>
+                            <td><center>${escaparHtml(element.titulo)}</center></td>
+                            <td><center>${escaparHtml(element.descripcion)}</center></td>
+                            <td><center>${escaparHtml(element.fecha_entrega)}</center></td>
+                            <td><center>${escaparHtml(element.hora_entrega)}</center></td>
+                            <td><center>${escaparHtml(estadoMostrado)}</center></td>
+                            <td><center>${escaparHtml(element.materia)}</center></td>
                             <td><center>${fileHTML}</center></td>
                             ${calificacionCeldaHTML}
                             <td><center>${actionsHTML}</center></td>
