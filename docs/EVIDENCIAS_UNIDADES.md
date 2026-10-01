@@ -21,8 +21,15 @@ Repositorios:
 | Funciones puras | `lib/funciones_notas.php`: `promedioNotas`, `notaMaxima`, `notaMinima`, `notasAprobadas`, `resumenNotas` | Mostrar que no acceden a la base de datos ni modifican variables externas; llamar `GET /api/calificaciones/promedios` y ver el resultado |
 | Funciones de orden superior (`map`, `filter`, `reduce`) | `lib/funciones_notas.php`: `notasValidas` (`array_map` + `array_filter`), `sumaNotas` (`array_reduce`), `promediosPorEstudiante` | Explicar el código: no hay ciclos `for` que acumulen en variables externas |
 | Inmutabilidad | `lib/funciones_notas.php`: `promediosPorEstudiante` crea arreglos nuevos con `array_replace` y el operador `...` en lugar de modificar el acumulado | Revisar el comentario en el código |
-
-*(Se completa en la Fase 2 con RxJS: buscador reactivo, polling, store, backpressure y el tipo `Resultado<T, E>`.)*
+| Funciones puras (frontend) | `frontend-angular/src/app/core/funcional/notas.ts`: `promedio`, `notaMaxima`, `notaMinima`, `aprobadas`, `resumen`, `distribucion` con `map`/`filter`/`reduce`; pruebas en `notas.spec.ts` (verifican que no modifican la entrada) | `ng test` → pruebas de `notas.spec.ts`; ver los indicadores de la pantalla Calificaciones |
+| Inmutabilidad (frontend) | Todos los modelos son `readonly` (`core/modelos.ts`); `Store` congela cada estado con `Object.freeze` y crea uno nuevo con spread; `MatriculasComponent` crea un `Set` nuevo en cada selección | `store.spec.ts`: el estado anterior queda intacto |
+| Mónada / functor | `frontend-angular/src/app/core/funcional/resultado.ts`: tipo `Resultado<T, E>` (Ok / Fallo) con `map`, `flatMap`, `coincidir`; el comentario explica las leyes. Operador RxJS `aResultado()` convierte errores HTTP en `Fallo` | `resultado.spec.ts` prueba las leyes de functor y de mónada; en la app, crear un rol repetido muestra el error sin romper la pantalla |
+| Streams reactivos | Servicios HTTP en `core/servicios/*.service.ts`: todos devuelven `Observable` | Revisar cualquier servicio |
+| Buscador reactivo | `paginas/tareas/tareas-lista.component.ts`: `debounceTime(400)` + `distinctUntilChanged()` + `switchMap()` | Escribir "taller" en Tareas: en la pestaña Network sale UNA sola petición al dejar de escribir; si se escribe rápido, `switchMap` cancela la anterior (aparece como *canceled*) |
+| Polling reactivo con reintentos | `core/estado/notificaciones.store.ts`: `interval(30000)` + `startWith(0)` + `switchMap` + `retry({ count: 3, delay: backoff })` | Network: una petición a `/notificaciones` cada 30 s. Apagar Apache: la campana muestra "Reintentando…" y se recupera sola al encenderlo |
+| Estado compartido (store) | `core/estado/store.ts` (`BehaviorSubject` + `distinctUntilChanged`) y `core/estado/calificaciones.store.ts` | Abrir Calificaciones y el detalle de una tarea; al guardar una nota en el detalle, el promedio y la tabla de Calificaciones se actualizan sin recargar |
+| Backpressure | `debounceTime` en el buscador (descarta teclas intermedias) y `exhaustMap` en `paginas/tareas/calificar.component.ts` (ignora clics mientras hay una petición en curso) | Doble o triple clic rápido en "Guardar" nota → en Network sale una sola petición `POST /calificaciones` |
+| Framework reactivo | Angular 22 sin zone.js (*zoneless*): la vista reacciona a *signals* y a Observables convertidos con `toSignal` | Revisar `app.config.ts` y cualquier componente |
 
 ---
 
@@ -33,8 +40,10 @@ Repositorios:
 | Transacciones con rollback | `api/src/BaseDatos.php`: `transaccion()`; usado en `MatriculasControlador::crear` y `TareasControlador::eliminar`. En PHP: `config/controllers/tareas/delete.php` y `matriculas/create.php` | Matricular un estudiante en varias materias: se guardan todas o ninguna |
 | Comunicación entre procesos / servicios web | API REST JSON en `api/` consumida por Angular por HTTP | Abrir `http://localhost/proyectoGestorEscolar/api/salud` |
 | Tolerancia a fallos (health check) | `api/src/Controladores/SaludControlador.php`: `GET /api/salud` responde 503 si la base de datos no responde | Detener MySQL en XAMPP y llamar `/api/salud` |
+| Paralelismo en el cliente | `frontend-angular/src/app/paginas/inicio/inicio.component.ts`: `forkJoin` pide materias, tareas y notificaciones al mismo tiempo | Network al abrir Inicio: las tres peticiones arrancan juntas (barras superpuestas en la línea de tiempo) |
+| Tolerancia a fallos (cliente) | `retry` con espera exponencial en `notificaciones.store.ts`; `aResultado()` evita que un error corte los flujos | Apagar Apache con la app abierta y volver a encenderlo |
 
-*(Se completa en la Fase 3: bloqueo optimista, `GET_LOCK`, `forkJoin`, Web Worker y cola Redis.)*
+*(Se completa en la Fase 3: bloqueo optimista, `GET_LOCK`, Web Worker, cola Redis y `timeout()`.)*
 
 ---
 
