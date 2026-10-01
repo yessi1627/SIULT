@@ -1,0 +1,39 @@
+# Infraestructura de apoyo: solo Redis y MongoDB (Apache, PHP y MySQL siguen en XAMPP).
+# Levantar:  docker compose -f docker-compose.infra.yml up -d
+# Detener:   docker compose -f docker-compose.infra.yml down
+name: siult-infra
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: siult-redis
+    # appendonly: Redis guarda los datos en disco para no perder la cola si el contenedor se reinicia
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-datos:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    container_name: siult-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-datos:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  redis-datos:
+  mongo-datos:
