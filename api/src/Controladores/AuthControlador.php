@@ -39,15 +39,19 @@ final class AuthControlador
         return Respuesta::ok(null);
     }
 
-    // GET /auth/me: datos del usuario autenticado
+    // GET /auth/me: datos del usuario autenticado.
+    // Tambien lo usa el API Gateway para validar la sesion antes de llamar a los microservicios;
+    // por eso incluyo las materias del estudiante (el microservicio de notificaciones filtra con ellas).
     public function yo(Peticion $peticion): Respuesta
     {
         $sesion = Sesion::exigirSesion();
-        $usuario = Usuario::with('rol')->activos()->find($sesion['id']);
+        $usuario = Usuario::with(['rol', 'materias'])->activos()->find($sesion['id']);
         if (!$usuario) {
             Sesion::cerrar();
             throw ErrorHttp::noAutenticado();
         }
-        return Respuesta::ok($usuario->paraApi());
+        return Respuesta::ok($usuario->paraApi() + [
+            'materias' => $usuario->materias->pluck('id_materia')->map(fn($id) => (int) $id)->values()->all(),
+        ]);
     }
 }
