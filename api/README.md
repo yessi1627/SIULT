@@ -39,7 +39,7 @@ Requiere la extensión `zip` activa en `C:\xampp\php\php.ini` (`extension=zip`) 
 
 | Método | Ruta | Roles | Descripción |
 |---|---|---|---|
-| GET | `/salud` | público | Estado de la API y de la base de datos |
+| GET | `/salud` | público | Estado de la API, la base de datos y Redis; tamaño de la cola y mensajes en respaldo |
 | POST | `/auth/login` | público | `{ email, password }` inicia sesión |
 | POST | `/auth/logout` | público | Cierra la sesión |
 | GET | `/auth/me` | todos | Usuario autenticado |
@@ -59,10 +59,10 @@ Requiere la extensión `zip` activa en `C:\xampp\php\php.ini` (`extension=zip`) 
 | GET | `/matriculas?id_usuario=` | ADMIN | Matrículas con estudiante y materia |
 | POST | `/matriculas` | ADMIN | `{ id_usuario, id_materias: [..] }` en una transacción |
 | GET | `/calificaciones?id_tarea=&id_materia=` | todos | El estudiante solo ve sus notas |
-| POST | `/calificaciones` | ADMIN, PROFESOR | `{ id_tarea, id_usuario, nota (0 a 5), observacion }`. Crea o actualiza |
+| POST | `/calificaciones` | ADMIN, PROFESOR | `{ id_tarea, id_usuario, nota (0 a 5), observacion, version }`. Sin `version` crea la nota; con `version` la actualiza solo si nadie la cambió antes (bloqueo optimista, si no **409**) |
 | GET | `/calificaciones/promedios?id_materia=` | todos | Promedio, máxima, mínima y aprobación por estudiante |
 | GET | `/entregas?id_tarea=` | todos | El estudiante solo ve las suyas |
-| POST | `/entregas` | ESTUDIANTE | `multipart/form-data`: `id_tarea`, `archivo` (pdf, docx, jpg, png, zip; máx. 5 MB) |
+| POST | `/entregas` | ESTUDIANTE | `multipart/form-data`: `id_tarea`, `archivo` (pdf, docx, jpg, png, zip; máx. 5 MB). Protegida con `GET_LOCK`: si hay otra subida en curso responde **409** |
 | GET | `/notificaciones?limite=20` | todos | Avisos más recientes; el estudiante solo los de sus materias |
 
 ## Ejemplo con curl
