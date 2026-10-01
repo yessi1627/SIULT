@@ -1,7 +1,8 @@
 # Bloqueo el acceso desde el navegador a carpetas y archivos que no son paginas del sistema:
-# dependencias de Composer, scripts SQL (tienen hashes de contraseñas), repositorio git y entorno de Python.
+# dependencias de Composer, scripts SQL (tienen hashes de contraseñas), codigo de los microservicios,
+# repositorio git y entorno de Python.
 RewriteEngine On
-RewriteRule ^(vendor|database|\.git|\.venv)(/|$) - [F,L]
+RewriteRule ^(vendor|database|servicios|node_modules|\.git|\.venv)(/|$) - [F,L]
 
 <FilesMatch "^(composer\.(json|lock)|\.gitignore)$">
     Require all denied
