@@ -1,8 +1,10 @@
 <?php
+// Este archivo solo se incluye desde una vista; no se puede abrir directamente
+require_once __DIR__ . '/../../seguridad.php';
+impedirAccesoDirecto(__FILE__);
 // Verifico si existe el id de materia
 if (!isset($id_materia)) {
     // Muestro error y redirecciono
-    session_start();
     $_SESSION['mensaje'] = "No se encontro la materia solicitada";
     $_SESSION['icono'] = "error";
     header('Location: ../materias/index.php');
@@ -33,7 +35,6 @@ if (count($materias) > 0) {
     }
 } else {
     // No encontre la materia
-    session_start();
     $_SESSION['mensaje'] = "La materia solicitada no existe o fue eliminada";
     $_SESSION['icono'] = "error";
     header('Location: index.php');

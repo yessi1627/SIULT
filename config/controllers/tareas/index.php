@@ -1,6 +1,8 @@
 <?php
+// Este archivo solo se incluye desde una vista; no se puede abrir directamente
+require_once __DIR__ . '/../../seguridad.php';
+impedirAccesoDirecto(__FILE__);
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
 }
 
 $sql_tareas = "
