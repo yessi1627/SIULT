@@ -94,6 +94,8 @@ final class TareasControlador
         $tarea->load('materia');
 
         $this->notificarCreacion($tarea);
+        // Cambia la cantidad de tareas por materia: borro la cache de materias
+        invalidarCache(PREFIJO_CACHE_MATERIAS);
         return Respuesta::creado($tarea->paraApi());
     }
 
@@ -103,6 +105,8 @@ final class TareasControlador
         $usuario = Sesion::exigirRol(['ADMINISTRADOR', 'PROFESOR']);
         $tarea = $this->consultaBase($usuario)->find($peticion->idRuta()) ?? throw ErrorHttp::noEncontrado('La tarea');
         $tarea->update($this->validar($peticion, true));
+        // Cambia la cantidad de tareas por materia: borro la cache de materias
+        invalidarCache(PREFIJO_CACHE_MATERIAS);
         return Respuesta::ok($tarea->load('materia')->paraApi());
     }
 
@@ -123,6 +127,8 @@ final class TareasControlador
         });
         array_map('borrarArchivoSubido', $rutas);
 
+        // Cambia la cantidad de tareas por materia: borro la cache de materias
+        invalidarCache(PREFIJO_CACHE_MATERIAS);
         return Respuesta::ok(null);
     }
 

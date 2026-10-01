@@ -41,6 +41,8 @@ final class UsuariosControlador
         Sesion::exigirRol(['ADMINISTRADOR']);
         $datos = $this->validar($peticion, true);
         $usuario = Usuario::create($datos + ['estado' => '1']);
+        // Cambia la cantidad de usuarios por rol: borro la cache de roles
+        invalidarCache(PREFIJO_CACHE_ROLES);
         return Respuesta::creado($usuario->load('rol')->paraApi());
     }
 
@@ -50,6 +52,8 @@ final class UsuariosControlador
         Sesion::exigirRol(['ADMINISTRADOR']);
         $usuario = $this->buscar($peticion->idRuta());
         $usuario->update($this->validar($peticion, false, $usuario->id_usuario));
+        // Cambia la cantidad de usuarios por rol: borro la cache de roles
+        invalidarCache(PREFIJO_CACHE_ROLES);
         return Respuesta::ok($usuario->load('rol')->paraApi());
     }
 
@@ -62,6 +66,8 @@ final class UsuariosControlador
             throw ErrorHttp::conflicto('No puede eliminar su propio usuario');
         }
         $usuario->delete();
+        // Cambia la cantidad de usuarios por rol: borro la cache de roles
+        invalidarCache(PREFIJO_CACHE_ROLES);
         return Respuesta::ok(null);
     }
 

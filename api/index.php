@@ -35,6 +35,7 @@ require_once __DIR__ . '/../config/archivos.php';
 require_once __DIR__ . '/../lib/funciones_notas.php';
 require_once __DIR__ . '/../config/redis.php';
 require_once __DIR__ . '/../config/bloqueos.php';
+require_once __DIR__ . '/../config/cache.php';
 
 // Calculo la URL donde vive la API (ej. /proyectoGestorEscolar/api) a partir de la carpeta del servidor
 function rutaBaseApi(): string

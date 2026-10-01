@@ -13,11 +13,19 @@ use Api\Seguridad\Sesion;
 // CRUD de roles: exclusivo del administrador
 final class RolesControlador
 {
+    // GET /roles con cache en Redis (se invalida al cambiar roles o usuarios)
     public function listar(Peticion $peticion): Respuesta
     {
         Sesion::exigirRol(['ADMINISTRADOR']);
-        $roles = Rol::activos()->withCount('usuarios')->orderBy('nombre_rol')->get();
-        return Respuesta::ok($roles->map(fn(Rol $r) => $r->paraApi() + ['cantidad_usuarios' => (int) $r->usuarios_count])->values());
+        [$roles, $estado] = recordarEnCache(PREFIJO_CACHE_ROLES, TTL_CACHE_SEGUNDOS, fn() => Rol::activos()
+            ->withCount('usuarios')
+            ->orderBy('nombre_rol')
+            ->get()
+            ->map(fn(Rol $r) => $r->paraApi() + ['cantidad_usuarios' => (int) $r->usuarios_count])
+            ->values()
+            ->all());
+        header('X-Cache: ' . $estado);
+        return Respuesta::ok($roles);
     }
 
     public function ver(Peticion $peticion): Respuesta
@@ -31,6 +39,8 @@ final class RolesControlador
         Sesion::exigirRol(['ADMINISTRADOR']);
         $nombre = $this->validarNombre($peticion);
         $rol = Rol::create(['nombre_rol' => $nombre, 'estado' => '1']);
+        // Los roles cambiaron: borro su cache
+        invalidarCache(PREFIJO_CACHE_ROLES);
         return Respuesta::creado($rol->paraApi());
     }
 
@@ -39,6 +49,8 @@ final class RolesControlador
         Sesion::exigirRol(['ADMINISTRADOR']);
         $rol = $this->buscar($peticion->idRuta());
         $rol->update(['nombre_rol' => $this->validarNombre($peticion, $rol->id_rol)]);
+        // Los roles cambiaron: borro su cache
+        invalidarCache(PREFIJO_CACHE_ROLES);
         return Respuesta::ok($rol->paraApi());
     }
 
@@ -50,6 +62,8 @@ final class RolesControlador
             throw ErrorHttp::conflicto('No se puede eliminar el rol porque tiene usuarios asignados');
         }
         $rol->delete();
+        // Los roles cambiaron: borro su cache
+        invalidarCache(PREFIJO_CACHE_ROLES);
         return Respuesta::ok(null);
     }
 

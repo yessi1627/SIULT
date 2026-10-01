@@ -56,6 +56,8 @@ final class MatriculasControlador
             ])->all()
         ));
 
+        // Cambian las materias del estudiante: borro la cache de materias
+        invalidarCache(PREFIJO_CACHE_MATERIAS);
         return Respuesta::creado([
             'matriculas_nuevas' => $nuevas,
             'ya_existian' => $materiasValidas->count() - $nuevas,
