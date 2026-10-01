@@ -1,0 +1,17 @@
+{
+  "name": "siult-calendario",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Microservicio de calendario: festivos de Colombia (Nager.Date) con cache en Redis",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "ioredis": "^5.11.1"
+  }
+}
