@@ -48,6 +48,27 @@ function notasAprobadas(array $notas, float $minimo = NOTA_MINIMA_APROBACION): a
     return array_values(array_filter(notasValidas($notas), fn(float $nota) => $nota >= $minimo));
 }
 
+
+// La escribi con TDD: primero las pruebas de tests/Unitarias/DesempenoTest.php (en rojo),
+// despues el codigo minimo para pasarlas (verde) y al final la reorganice en una tabla de rangos.
+const RANGOS_DESEMPENO = [
+    ['minimo' => 4.6, 'nivel' => 'Superior'],
+    ['minimo' => 4.0, 'nivel' => 'Alto'],
+    ['minimo' => 3.0, 'nivel' => 'Básico'],
+    ['minimo' => 0.0, 'nivel' => 'Bajo'],
+];
+
+// Devuelve el nivel de desempeño de una nota o null si no es una nota valida
+function desempenoNota(mixed $nota): ?string
+{
+    $validas = notasValidas([$nota]);
+    if ($validas === []) {
+        return null;
+    }
+    $rango = array_values(array_filter(RANGOS_DESEMPENO, fn(array $r) => $validas[0] >= $r['minimo']))[0];
+    return $rango['nivel'];
+}
+
 // Resumen completo de una lista de notas
 function resumenNotas(array $notas, float $minimo = NOTA_MINIMA_APROBACION): array
 {
@@ -59,17 +80,18 @@ function resumenNotas(array $notas, float $minimo = NOTA_MINIMA_APROBACION): arr
         'nota_minima' => notaMinima($notas),
         'aprobadas' => count(notasAprobadas($notas, $minimo)),
         'aprueba' => $promedio !== null && $promedio >= $minimo,
+        'desempeno' => desempenoNota($promedio),
     ];
 }
 
-// Agrupo calificaciones por estudiante sin modificar el arreglo original.
+// se agrupa calificaciones por estudiante sin modificar el arreglo original.
 // Recibo filas con 'id_usuario', 'nombres' y 'nota' y devuelvo un resumen por estudiante.
 function promediosPorEstudiante(array $calificaciones, float $minimo = NOTA_MINIMA_APROBACION): array
 {
     $agrupadas = array_reduce($calificaciones, function (array $grupos, array $fila) {
         $id = (int) $fila['id_usuario'];
         $actual = $grupos[$id] ?? ['id_usuario' => $id, 'nombres' => $fila['nombres'] ?? '', 'notas' => []];
-        // Creo un arreglo nuevo en vez de modificar el anterior (inmutabilidad)
+        // se crea  un arreglo nuevo en vez de modificar el anterior (inmutabilidad)
         return array_replace($grupos, [$id => array_merge($actual, ['notas' => [...$actual['notas'], $fila['nota']]])]);
     }, []);
 

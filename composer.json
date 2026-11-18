@@ -12,7 +12,13 @@
             "Api\\": "api/src/"
         }
     },
+    "scripts": {
+        "test": "phpunit"
+    },
     "config": {
         "sort-packages": true
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11"
     }
 }

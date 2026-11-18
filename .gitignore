@@ -3,7 +3,6 @@ __pycache__/
 *.pyc
 
 # Archivos que suben los usuarios: son datos, no codigo, y no deben ir al repositorio.
-# Conservo la carpeta con .gitkeep para que exista al clonar el proyecto.
 config/uploads/*
 !config/uploads/.gitkeep
 
@@ -12,3 +11,7 @@ config/uploads/*
 
 # Dependencias de los microservicios Node (se instalan con: cd servicios && npm install)
 node_modules/
+
+# Cache de PHPUnit y reportes de las pruebas BDD
+.phpunit.cache/
+servicios/reportes/

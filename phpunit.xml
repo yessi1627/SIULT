@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Pruebas del backend PHP. Ejecutar: composer test (o vendor/bin/phpunit) -->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         testdox="true"
+         cacheDirectory=".phpunit.cache">
+    <testsuites>
+        <testsuite name="Unitarias">
+            <directory>tests/Unitarias</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>api/src/Http</directory>
+            <file>lib/funciones_notas.php</file>
+        </include>
+    </source>
+</phpunit>
