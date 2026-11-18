@@ -1,0 +1,70 @@
+# INTEGRACION CONTINUA en cada push o pull request GitHub ejecuta todas las pruebas y construye las
+# imagenes de Docker. Si algo falla, el commit queda marcado en rojo y se sabe de inmediato.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  php:
+    name: Backend PHP (sintaxis + PHPUnit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_mysql, mbstring, fileinfo
+      - run: composer install --no-interaction --prefer-dist
+      - name: Revisar la sintaxis de todos los archivos PHP
+        run: find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l > /dev/null
+      - run: vendor/bin/phpunit
+
+  servicios:
+    name: Microservicios (unitarias, integracion y BDD)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: servicios
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: servicios/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run bdd
+      - name: Guardar el reporte de BDD
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-bdd
+          path: servicios/reportes/bdd.html
+
+  funcion:
+    name: Funcion serverless
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+        working-directory: funciones/reporte-notas
+
+  imagenes:
+    name: Construir imagenes Docker
+    needs: [php, servicios]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t siult/api:${{ github.sha }} .
+      - run: |
+          for servicio in gateway notificaciones calendario; do
+            docker build -t siult/$servicio:${{ github.sha }} --build-arg SERVICIO=$servicio servicios
+          done
+      - run: docker images 'siult/*'
