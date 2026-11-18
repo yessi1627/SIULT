@@ -12,9 +12,13 @@
     "gateway": "npm start -w gateway",
     "notificaciones": "npm start -w notificaciones",
     "calendario": "npm start -w calendario",
-    "test": "npm test --workspaces --if-present"
+    "test": "npm test --workspaces --if-present",
+    "bdd": "cucumber-js"
   },
   "engines": {
     "node": ">=20.19"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^13.3.0"
   }
 }
