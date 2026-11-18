@@ -12,6 +12,7 @@ use Api\Controladores\EntregasControlador;
 use Api\Controladores\MateriasControlador;
 use Api\Controladores\MatriculasControlador;
 use Api\Controladores\NotificacionesControlador;
+use Api\Controladores\RecuperacionControlador;
 use Api\Controladores\RolesControlador;
 use Api\Controladores\SaludControlador;
 use Api\Controladores\TareasControlador;
@@ -24,7 +25,7 @@ use Api\Seguridad\Cors;
 use Api\Seguridad\Sesion;
 use Illuminate\Database\QueryException;
 
-// Nunca muestro errores de PHP en la salida: romperian el JSON. Se registran en el log de Apache.
+// Nunca Se muestra errores de PHP en la salida porque romperian el JSON. Se registran en el log de Apache.
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
@@ -58,6 +59,8 @@ $enrutador->get('/salud', [SaludControlador::class, 'revisar']);
 $enrutador->post('/auth/login', [AuthControlador::class, 'login']);
 $enrutador->post('/auth/logout', [AuthControlador::class, 'logout']);
 $enrutador->get('/auth/me', [AuthControlador::class, 'yo']);
+$enrutador->post('/auth/recuperar', [RecuperacionControlador::class, 'solicitar']);
+$enrutador->post('/auth/restablecer', [RecuperacionControlador::class, 'restablecer']);
 
 foreach ([
     'usuarios' => UsuariosControlador::class,
