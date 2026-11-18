@@ -1,0 +1,139 @@
+
+name: siult
+
+x-servicio-node: &servicio-node
+  restart: unless-stopped
+  depends_on:
+    redis:
+      condition: service_healthy
+  environment: &entorno-node
+    REDIS_URL: redis://redis:6379/0
+    # Cada replica se anuncia en el registro con la IP de su contenedor
+    HOST_PUBLICO: auto
+
+services:
+  mysql:
+    image: mariadb:10.11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MYSQL_PASSWORD:-siult-local}
+      MARIADB_DATABASE: sistemaescolar
+      TZ: America/Bogota
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_spanish_ci"]
+    volumes:
+      - mysql-datos:/var/lib/mysql
+      # Los scripts se ejecutan una sola vez, en orden alfabetico, la primera vez que se crea el volumen
+      - ./database/sistemaescolar.sql:/docker-entrypoint-initdb.d/01-sistemaescolar.sql:ro
+      - ./database/migracion_matriculas.sql:/docker-entrypoint-initdb.d/02-matriculas.sql:ro
+      - ./database/migracion_calificaciones.sql:/docker-entrypoint-initdb.d/03-calificaciones.sql:ro
+      - ./database/migracion_entregas.sql:/docker-entrypoint-initdb.d/04-entregas.sql:ro
+      - ./database/migracion_concurrencia.sql:/docker-entrypoint-initdb.d/05-concurrencia.sql:ro
+      - ./database/migracion_indices.sql:/docker-entrypoint-initdb.d/06-indices.sql:ro
+      - ./database/migracion_recuperacion.sql:/docker-entrypoint-initdb.d/07-recuperacion.sql:ro
+    ports:
+      - "3307:3306" # 3307 para no chocar con el MySQL de XAMPP
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-datos:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-datos:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    image: siult/api:1.0
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      MYSQLHOST: mysql
+      MYSQLPORT: "3306"
+      MYSQLUSER: root
+      MYSQLPASSWORD: ${MYSQL_PASSWORD:-siult-local}
+      MYSQLDATABASE: sistemaescolar
+      REDIS_HOST: redis
+      FRONTEND_URL: http://localhost:4200
+    volumes:
+      - uploads:/var/www/html/proyectoGestorEscolar/config/uploads
+    ports:
+      - "8081:80" # vistas PHP originales en http://localhost:8081/proyectoGestorEscolar
+
+  notificaciones:
+    <<: *servicio-node
+    build:
+      context: ./servicios
+      args: { SERVICIO: notificaciones }
+    image: siult/notificaciones:1.0
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    environment:
+      <<: *entorno-node
+      PUERTO: "3001"
+      MONGO_URL: mongodb://mongo:27017/siult
+
+  calendario:
+    <<: *servicio-node
+    build:
+      context: ./servicios
+      args: { SERVICIO: calendario }
+    image: siult/calendario:1.0
+    environment:
+      <<: *entorno-node
+      PUERTO: "3002"
+
+  gateway:
+    <<: *servicio-node
+    build:
+      context: ./servicios
+      args: { SERVICIO: gateway }
+    image: siult/gateway:1.0
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      PUERTO: "8080"
+      API_PHP_URL: http://api
+      ORIGENES: http://localhost:4200,http://127.0.0.1:4200
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ../frontend-angular
+    image: siult/frontend:1.0
+    restart: unless-stopped
+    depends_on:
+      - gateway
+    ports:
+      - "4200:80"
+
+volumes:
+  mysql-datos:
+  redis-datos:
+  mongo-datos:
+  uploads:

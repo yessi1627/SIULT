@@ -1,0 +1,9 @@
+node_modules
+**/node_modules
+**/test
+features
+reportes
+funciones
+cucumber.mjs
+iniciar-todo.mjs
+README.md

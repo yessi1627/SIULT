@@ -1,0 +1,20 @@
+# Lo que NO entra a la imagen del backend PHP
+.git
+.github
+.venv
+__pycache__
+*.py
+*.pyc
+vendor
+servicios
+funciones
+k8s
+tests
+docs
+phpunit.xml
+.phpunit.cache
+docker-compose*.yml
+Dockerfile
+.dockerignore
+config/uploads/*
+!config/uploads/.gitkeep

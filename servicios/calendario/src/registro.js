@@ -1,12 +1,17 @@
-/**
- * SERVICE DISCOVERY (auto-registro): al arrancar, el servicio guarda en Redis la clave
- *   servicio:<nombre>:<instancia>  ->  { nombre, url, rutaBase, ... }
- * con un tiempo de vida (TTL) de 30 s y la renueva cada 10 s (latido / heartbeat).
- * Si el proceso se cae, deja de renovarla y Redis la borra sola: el gateway ya no le envia trafico.
- * (Cada microservicio tiene su propia copia: asi se despliegan de forma independiente.)
- */
+
+import { hostname, networkInterfaces } from 'node:os';
+
+// Direccion con la que el servicio se anuncia en el registro. Con HOST_PUBLICO=auto (Docker y Kubernetes)
+// uso la IP del contenedor o del pod, que es distinta en cada replica y el gateway puede alcanzar.
+export function direccionPublica(valor = '127.0.0.1') {
+  if (valor !== 'auto') return valor;
+  const ipv4 = Object.values(networkInterfaces()).flat().find((i) => i?.family === 'IPv4' && !i.internal);
+  return ipv4?.address ?? hostname();
+}
+
 export function registrarServicio(redis, { nombre, host, puerto, rutaBase = '', intervaloMs = 10_000, ttlSeg = 30 }) {
-  const instancia = `${nombre}-${process.pid}`;
+  // En un contenedor el PID siempre es 1,  el hostname (id del contenedor o nombre del pod) es unico
+  const instancia = `${nombre}-${hostname()}-${process.pid}`;
   const clave = `servicio:${nombre}:${instancia}`;
   const datos = JSON.stringify({
     nombre,

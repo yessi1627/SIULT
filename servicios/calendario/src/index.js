@@ -1,11 +1,11 @@
 import { Redis } from 'ioredis';
 import { crearApp } from './app.js';
 import { crearConsultaFestivos } from './festivos.js';
-import { registrarServicio } from './registro.js';
+import { direccionPublica, registrarServicio } from './registro.js';
 
 const config = Object.freeze({
   nombre: 'calendario',
-  host: process.env.HOST_PUBLICO ?? '127.0.0.1',
+  host: direccionPublica(process.env.HOST_PUBLICO),
   puerto: Number(process.env.PUERTO ?? 3002),
   redisUrl: process.env.REDIS_URL ?? 'redis://127.0.0.1:6379/0',
 });
