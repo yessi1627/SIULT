@@ -1,0 +1,15 @@
+{
+  "name": "siult-funcion-reporte-notas",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Funcion serverless (FaaS) que genera el reporte de notas de un curso en JSON o CSV",
+  "type": "module",
+  "main": "index.mjs",
+  "scripts": {
+    "local": "node local.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

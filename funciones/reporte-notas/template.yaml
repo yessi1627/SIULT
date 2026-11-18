@@ -1,0 +1,31 @@
+# Plantilla de AWS SAM (infraestructura como codigo) para desplegar la funcion en AWS Lambda.
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SIULT - reporte de notas como funcion (FaaS)
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Architectures: [arm64]
+    MemorySize: 256
+    Timeout: 10
+
+Resources:
+  ReporteNotasFuncion:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: index.handler
+      Description: Recibe las calificaciones de un curso y devuelve el resumen por estudiante (JSON o CSV)
+      Events:
+        Reporte:
+          Type: HttpApi
+          Properties:
+            Path: /reporte-notas
+            Method: POST
+
+Outputs:
+  UrlReporte:
+    Description: URL publica de la funcion
+    Value: !Sub 'https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/reporte-notas'
