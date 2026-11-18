@@ -1,0 +1,35 @@
+# Espacio de nombres, configuracion y secretos de SIULT en Kubernetes.
+# La configuracion vive fuera de las imagenes (12-factor): la misma imagen sirve para cualquier entorno.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: siult
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: siult-config
+  namespace: siult
+data:
+  MYSQLHOST: mysql
+  MYSQLPORT: "3306"
+  MYSQLUSER: root
+  MYSQLDATABASE: sistemaescolar
+  REDIS_HOST: redis
+  REDIS_URL: redis://redis:6379/0
+  MONGO_URL: mongodb://mongo:27017/siult
+  FRONTEND_URL: http://localhost:4200
+  API_PHP_URL: http://api
+  ORIGENES: http://localhost:4200,http://127.0.0.1:4200
+  HOST_PUBLICO: auto
+---
+# Los datos sensibles van en un Secret, no en el ConfigMap ni en el codigo.
+# En un entorno real se crea con: kubectl create secret generic siult-secretos --from-literal=MYSQLPASSWORD=...
+apiVersion: v1
+kind: Secret
+metadata:
+  name: siult-secretos
+  namespace: siult
+type: Opaque
+stringData:
+  MYSQLPASSWORD: siult-local

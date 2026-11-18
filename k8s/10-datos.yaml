@@ -1,0 +1,138 @@
+# Servicios con estado: MariaDB, Redis y MongoDB.
+# Usan StatefulSet + volumen persistente (PVC): si el pod se reinicia o cambia de nodo, los datos se conservan.
+# Los scripts SQL se cargan desde el ConfigMap siult-sql (ver k8s/README.md, paso 2).
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: siult
+spec:
+  serviceName: mysql
+  replicas: 1
+  selector:
+    matchLabels: { app: mysql }
+  template:
+    metadata:
+      labels: { app: mysql }
+    spec:
+      containers:
+        - name: mariadb
+          image: mariadb:10.11
+          args: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_spanish_ci"]
+          env:
+            - name: MARIADB_DATABASE
+              value: sistemaescolar
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom: { secretKeyRef: { name: siult-secretos, key: MYSQLPASSWORD } }
+            - name: TZ
+              value: America/Bogota
+          ports: [{ containerPort: 3306 }]
+          readinessProbe:
+            exec: { command: ["healthcheck.sh", "--connect", "--innodb_initialized"] }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 512Mi }
+          volumeMounts:
+            - { name: datos, mountPath: /var/lib/mysql }
+            - { name: scripts, mountPath: /docker-entrypoint-initdb.d }
+      volumes:
+        - name: scripts
+          configMap: { name: siult-sql }
+  volumeClaimTemplates:
+    - metadata: { name: datos }
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: { requests: { storage: 1Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: siult
+spec:
+  selector: { app: mysql }
+  ports: [{ port: 3306 }]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: siult
+spec:
+  serviceName: redis
+  replicas: 1
+  selector:
+    matchLabels: { app: redis }
+  template:
+    metadata:
+      labels: { app: redis }
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          args: ["redis-server", "--appendonly", "yes"]
+          ports: [{ containerPort: 6379 }]
+          readinessProbe:
+            exec: { command: ["redis-cli", "ping"] }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          volumeMounts: [{ name: datos, mountPath: /data }]
+  volumeClaimTemplates:
+    - metadata: { name: datos }
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: { requests: { storage: 256Mi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: siult
+spec:
+  selector: { app: redis }
+  ports: [{ port: 6379 }]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+  namespace: siult
+spec:
+  serviceName: mongo
+  replicas: 1
+  selector:
+    matchLabels: { app: mongo }
+  template:
+    metadata:
+      labels: { app: mongo }
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:7
+          ports: [{ containerPort: 27017 }]
+          readinessProbe:
+            exec: { command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"] }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 512Mi }
+          volumeMounts: [{ name: datos, mountPath: /data/db }]
+  volumeClaimTemplates:
+    - metadata: { name: datos }
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: { requests: { storage: 1Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+  namespace: siult
+spec:
+  selector: { app: mongo }
+  ports: [{ port: 27017 }]

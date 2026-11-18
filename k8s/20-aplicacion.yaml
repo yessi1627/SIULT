@@ -1,0 +1,250 @@
+# Servicios sin estado: backend PHP, microservicios, API Gateway y frontend.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: siult
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: api }
+  template:
+    metadata:
+      labels: { app: api }
+    spec:
+      containers:
+        - name: api
+          image: siult/api:1.0
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: siult-config }
+            - secretRef: { name: siult-secretos }
+          ports: [{ containerPort: 80 }]
+          readinessProbe:
+            httpGet: { path: /proyectoGestorEscolar/api/salud, port: 80 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /proyectoGestorEscolar/api/salud, port: 80 }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { memory: 256Mi }
+          volumeMounts:
+            - { name: uploads, mountPath: /var/www/html/proyectoGestorEscolar/config/uploads }
+      volumes:
+        - name: uploads
+          persistentVolumeClaim: { claimName: uploads }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: uploads
+  namespace: siult
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: { requests: { storage: 1Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: siult
+spec:
+  selector: { app: api }
+  ports: [{ port: 80 }]
+
+# ---------- Microservicio de notificaciones ----------
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notificaciones
+  namespace: siult
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  selector:
+    matchLabels: { app: notificaciones }
+  template:
+    metadata:
+      labels: { app: notificaciones }
+    spec:
+      containers:
+        - name: notificaciones
+          image: siult/notificaciones:1.0
+          imagePullPolicy: IfNotPresent
+          envFrom: [{ configMapRef: { name: siult-config } }]
+          env: [{ name: PUERTO, value: "3001" }]
+          ports: [{ containerPort: 3001 }]
+          readinessProbe:
+            httpGet: { path: /salud, port: 3001 }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /salud, port: 3001 }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 50m, memory: 96Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notificaciones
+  namespace: siult
+spec:
+  selector: { app: notificaciones }
+  ports: [{ port: 3001 }]
+
+# ---------- Microservicio de calendario (con autoescalado) ----------
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calendario
+  namespace: siult
+  labels: { app: calendario }
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  selector:
+    matchLabels: { app: calendario, version: estable }
+  template:
+    metadata:
+      labels: { app: calendario, version: estable }
+    spec:
+      containers:
+        - name: calendario
+          image: siult/calendario:1.0
+          imagePullPolicy: IfNotPresent
+          envFrom: [{ configMapRef: { name: siult-config } }]
+          env: [{ name: PUERTO, value: "3002" }]
+          ports: [{ containerPort: 3002 }]
+          readinessProbe:
+            httpGet: { path: /salud, port: 3002 }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /salud, port: 3002 }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 128Mi }
+---
+# ESCALABILIDAD: el HPA agrega pods de calendario cuando el uso de CPU pasa del 70 % (entre 2 y 5 pods).
+# pod nuevo se auto-registra en Redis y el gateway empieza a repartirle peticiones (round-robin).
+# Requiere metrics-server en el cluster (ver k8s/README.md). Cada
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: calendario
+  namespace: siult
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: calendario }
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: calendario
+  namespace: siult
+spec:
+  selector: { app: calendario }
+  ports: [{ port: 3002 }]
+
+# ---------- API Gateway (unica entrada desde afuera) ----------
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: siult
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  selector:
+    matchLabels: { app: gateway }
+  template:
+    metadata:
+      labels: { app: gateway }
+    spec:
+      containers:
+        - name: gateway
+          image: siult/gateway:1.0
+          imagePullPolicy: IfNotPresent
+          envFrom: [{ configMapRef: { name: siult-config } }]
+          env: [{ name: PUERTO, value: "8080" }]
+          ports: [{ containerPort: 8080 }]
+          readinessProbe:
+            httpGet: { path: /registro, port: 8080 }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /registro, port: 8080 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 128Mi }
+---
+# LoadBalancer: en Docker Desktop queda publicado en http://localhost:8080; en la nube crea un balanceador real
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  namespace: siult
+spec:
+  type: LoadBalancer
+  selector: { app: gateway }
+  ports: [{ port: 8080, targetPort: 8080 }]
+
+# ---------- Frontend Angular ----------
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: siult
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: frontend }
+  template:
+    metadata:
+      labels: { app: frontend }
+    spec:
+      containers:
+        - name: frontend
+          image: siult/frontend:1.0
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 80 }]
+          readinessProbe:
+            httpGet: { path: /, port: 80 }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 20m, memory: 32Mi }
+            limits: { memory: 64Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: siult
+spec:
+  type: LoadBalancer
+  selector: { app: frontend }
+  ports: [{ port: 4200, targetPort: 80 }]

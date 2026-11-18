@@ -1,0 +1,31 @@
+# PATRON DE DESPLIEGUE CANARY: publico la version 1.1 del calendario a una parte pequeña del trafico.
+#
+# El Service "calendario" y el gateway eligen pods por la etiqueta app=calendario, sin mirar la version.
+# Con 2 pods estables + 1 pod canary, cerca de 1 de cada 3 peticiones va a la version nueva.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calendario-canary
+  namespace: siult
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: calendario, version: canary }
+  template:
+    metadata:
+      labels: { app: calendario, version: canary }
+    spec:
+      containers:
+        - name: calendario
+          image: siult/calendario:1.1
+          imagePullPolicy: IfNotPresent
+          envFrom: [{ configMapRef: { name: siult-config } }]
+          env: [{ name: PUERTO, value: "3002" }]
+          ports: [{ containerPort: 3002 }]
+          readinessProbe:
+            httpGet: { path: /salud, port: 3002 }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 128Mi }
